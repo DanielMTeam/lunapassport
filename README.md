@@ -1,48 +1,54 @@
 # LunaPassport
 
-Локальная лаборатория для исследования HTTP-потока Microsoft .NET Passport
-SSI 1.4 в Windows XP/Internet Explorer 6. Проект не подключается к реальному
-Microsoft Passport: токены и учётные данные действуют только внутри этой
-лаборатории.
+**English** | [Русский](README.ru.md)
 
-## Текущее состояние
+[![Go](https://img.shields.io/badge/Go-1.20+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Passport](https://img.shields.io/badge/Passport-SSI%201.4-0078D4)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pass/a059aaaf-2d4a-40c6-ad96-7175c379ffd7)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Lab only](https://img.shields.io/badge/scope-lab%20only-orange)](#limits--security)
+[![Last commit](https://img.shields.io/github/last-commit/DanielMTeam/lunapassport)](https://github.com/DanielMTeam/lunapassport)
 
-LunaPassport реализует:
+Isolated Windows XP .NET Passport SSI 1.4 lab. Emulates retired Passport
+endpoints and the browser/Wizard flow for local testing. Tokens and credentials
+work only inside this lab — they are not accepted by real Microsoft services.
 
-- Nexus endpoint `GET /rdr/pprdr.asp` с динамическим заголовком `PassportURLs`;
-- Passport Wizard на `/defaultwiz.asp`, `/uixpwiz.srf` и `/UIXPWiz.srf`;
-- SSI login endpoints `/login2.srf` и `/login2.asp`;
-- challenge `WWW-Authenticate: Passport1.4` и разбор `Authorization`;
-- локальные Passport-токены, `PPAuth`, `MSPAuth` и `MSPProf` cookies;
-- защищённую страницу `/ppsecure/MSRV_EditProfile.asp`;
-- изменение email, имени, пароля, секретного вопроса и ответа;
-- logout и страницу отмены входа с возможностью повторить авторизацию;
-- `/partner` для проверки созданной локальной сессии;
-- SQLite-хранилище через GORM с автоматической миграцией схемы.
+> **Lab only.** Do not expose this mock on the public internet, do not reuse
+> real passwords, and do not expect these tokens to work against production
+> services. The Go service is HTTP-only; Traefik or Nginx terminates TLS.
 
-Go-сервис слушает только HTTP. TLS завершается на Traefik или Nginx, поэтому
-сертификаты не генерируются и не загружаются LunaPassport.
+## What it implements
 
-## Структура проекта
+- Nexus endpoint `GET /rdr/pprdr.asp` with a dynamic `PassportURLs` header
+- Passport Wizard on `/defaultwiz.asp`, `/uixpwiz.srf`, and `/UIXPWiz.srf`
+- SSI login endpoints `/login2.srf` and `/login2.asp`
+- `WWW-Authenticate: Passport1.4` challenge and `Authorization` parsing
+- Local Passport tokens plus `PPAuth`, `MSPAuth`, and `MSPProf` cookies
+- Protected profile page `/ppsecure/MSRV_EditProfile.asp`
+- Editable email, name, password, secret question, and answer
+- Logout and cancelled-login page with retry
+- `/partner` for checking the local session
+- SQLite storage via GORM with automatic schema migration
 
-- `cmd/lunapassport/main.go` — запуск HTTP-сервера и конфигурация;
-- `cmd/lunapassport/server.go` — маршруты, состояние сессий и healthcheck;
-- `cmd/lunapassport/passport.go` — Nexus, SSI challenge, токены и cookies;
-- `cmd/lunapassport/wizard.go` — Wizard, профиль аккаунта и обработка настроек;
-- `cmd/lunapassport/accounts.go` — модели GORM, SQLite и миграции;
-- `cmd/lunapassport/static/` — Wizard и LunaPassport HTML/CSS/изображения;
-- `tests/lunapassport_test.go` — black-box тест, который собирает и запускает
-  сервер как отдельный процесс.
+## How it fits together
 
-## Локальный запуск
+```mermaid
+flowchart LR
+  XP[WinXP_IE6] --> Traefik
+  Traefik -->|TLS_offload| Luna[LunaPassport_HTTP]
+  Luna --> SQLite
+  XP -->|Nexus_PassportURLs| Luna
+  XP -->|SSI_challenge_and_token| Luna
+```
 
-Требуется современный Go и Docker не нужен:
+## Quick start
+
+Requires a modern Go toolchain. Docker is optional.
 
 ```powershell
 go run .\cmd\lunapassport -http :8080
 ```
 
-При первом запуске создаётся `accounts.db` с локальной тестовой учёткой:
+On first start the app creates `accounts.db` with a seeded test account:
 
 ```text
 Email:    test@example.com
@@ -50,25 +56,37 @@ Password: testpass
 Name:     Test Passport
 ```
 
-Файл базы можно изменить через `-db`:
+Override the database path with `-db`:
 
 ```powershell
 go run .\cmd\lunapassport -http :8080 -db .\accounts.db
 ```
 
-Настройки аккаунта редактируются после входа на странице:
+After sign-in, edit the account at:
 
 ```text
 /ppsecure/MSRV_EditProfile.asp
 ```
 
-Секретный вопрос и ответ сохраняются в локальной базе, но отдельный сценарий
-восстановления пароля через них пока не реализован.
+The secret question and answer are stored locally, but password recovery through
+them is not implemented yet.
 
-## Конфигурация доменов
+### Project layout
 
-Для Docker Compose по умолчанию используются staging-домены проекта. При
-необходимости скопируй `.env.example` в `.env` и укажи свои значения:
+| Path | Role |
+| --- | --- |
+| `cmd/lunapassport/main.go` | HTTP server bootstrap and configuration |
+| `cmd/lunapassport/server.go` | Routes, session state, healthcheck |
+| `cmd/lunapassport/passport.go` | Nexus, SSI challenge, tokens, cookies |
+| `cmd/lunapassport/wizard.go` | Wizard, account profile, settings |
+| `cmd/lunapassport/accounts.go` | GORM models, SQLite, migrations |
+| `cmd/lunapassport/static/` | Wizard and LunaPassport HTML/CSS/images |
+| `tests/lunapassport_test.go` | Black-box test that builds and runs the server as a process |
+
+## Domain configuration
+
+Docker Compose defaults to the project staging hosts. Copy `.env.example` to
+`.env` when you need custom values:
 
 ```text
 PASSPORT_HOST=passport-staging.alexsyw.me
@@ -76,30 +94,25 @@ MEMBERSERVICES_HOST=memberservices-staging.alexsyw.me
 PASSPORT_COOKIE_DOMAIN=.alexsyw.me
 ```
 
-`PASSPORT_HOST` используется для Nexus, login, регистрации, redirect и Wizard.
-`MEMBERSERVICES_HOST` используется для профиля и help-страницы.
-`PASSPORT_COOKIE_DOMAIN` должен быть общим родительским доменом обоих хостов,
-иначе cookies не будут передаваться между ними.
+- `PASSPORT_HOST` — Nexus, login, registration, redirects, and Wizard
+- `MEMBERSERVICES_HOST` — profile and help pages
+- `PASSPORT_COOKIE_DOMAIN` — shared parent domain for both hosts (required for cookies)
 
-При запуске Go напрямую без флагов остаются исторические значения
-`*.passport.com`; для такого запуска передай флаги ниже или задай переменные
-окружения.
-
-Доступные флаги сервера:
+Running Go directly without flags keeps the historical `*.passport.com` defaults.
+Pass the flags below or set the matching environment variables.
 
 ```text
--http                    HTTP listen address, по умолчанию :8080
--db                      путь к SQLite-файлу, по умолчанию accounts.db
--passport-host           центральный Passport host
--memberservices-host     host профиля и help-страницы
--passport-cookie-domain  общий домен cookies
+-http                    HTTP listen address (default :8080)
+-db                      SQLite file path (default accounts.db)
+-passport-host           central Passport host
+-memberservices-host     profile and help host
+-passport-cookie-domain  shared cookie domain
 ```
 
-## Docker Compose и внешний Traefik
+## Docker Compose and external Traefik
 
-Compose запускает только Go-сервис по HTTP на внутреннем порту `8080`.
-Traefik должен быть запущен отдельно и подключён к внешней Docker-сети
-`traefik`:
+Compose starts only the Go service on internal HTTP port `8080`. Traefik must
+already be running and attached to the external Docker network `traefik`:
 
 ```powershell
 docker network create traefik
@@ -107,24 +120,23 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Сеть `traefik` должна существовать до запуска Compose. Внешний Traefik должен
-иметь Docker provider, entrypoints `web` и `websecure`, а также сам загружать
-TLS-сертификаты и `traefik/dynamic.yml`. Этот Compose не публикует порты и не
-запускает второй экземпляр Traefik.
+The `traefik` network must exist before Compose starts. External Traefik needs a
+Docker provider, entrypoints `web` and `websecure`, and must load TLS
+certificates plus `traefik/dynamic.yml`. This Compose file does not publish
+ports or start a second Traefik instance.
 
-База и состояние аккаунта лежат в `_data/accounts.db`. Сертификат и ключ
-должны соответствовать путям из `traefik/dynamic.yml`:
+Account state lives in `_data/accounts.db`. Certificate and key paths must match
+`traefik/dynamic.yml`:
 
 ```text
 _data/passport-mock.crt
 _data/passport-mock.key
 ```
 
-Сертификат должен содержать все домены, через которые будет обращаться XP.
-Traefik маршрутизирует изолированный lab-сервис по правилу `PathPrefix(/)`, поэтому
-имя хоста определяется hosts-файлом и сертификатом.
+The certificate must cover every hostname XP will use. Hostnames come from the
+hosts file and the certificate, not from this Compose stack.
 
-Остановить окружение:
+Stop the environment:
 
 ```powershell
 docker compose down
@@ -132,51 +144,50 @@ docker compose down
 
 ## Windows XP
 
-Для staging-конфигурации добавь в `hosts` XP:
+For the staging setup, add to the XP `hosts` file:
 
 ```text
 192.168.67.1 passport-staging.alexsyw.me memberservices-staging.alexsyw.me
 ```
 
-IP замени на адрес машины с Traefik. Сертификат подписывающего CA нужно один
-раз импортировать в Trusted Root Certification Authorities.
+Replace the IP with the machine that runs Traefik. Import the signing CA once
+into Trusted Root Certification Authorities.
 
-Для WinHTTP Passport Test можно импортировать:
+For WinHTTP Passport Test, import:
 
 ```text
 passport-test.reg
 ```
 
-Файл настраивает готовые Passport URL в `Internet Settings\Passport`, которые
-читает сам Wizard. Поэтому
-на чистой системе `RegistrationUrl`, `LoginServerUrl`, `Properties`, `Help`,
-`Privacy` и `GeneralRedir` сразу указывают на staging-домены.
-Для уже использовавшейся XP старые Passport URL могут оставаться в кэше;
-перезапуск приложения или чистый профиль нужен только для сброса этого кэша.
-Для других доменов используй `passport-test.reg.example` и замени значения хостов.
+That file writes Passport URLs under `Internet Settings\Passport`, which the
+Wizard reads. On a clean system, `RegistrationUrl`, `LoginServerUrl`,
+`Properties`, `Help`, `Privacy`, and `GeneralRedir` point at the staging hosts.
+On a previously used XP box, old Passport URLs may remain cached — restart the
+app or use a clean profile to clear that cache. For other domains, start from
+`passport-test.reg.example` and replace the host values.
 
-Если используются исторические домены по умолчанию:
+Historical default domains:
 
 ```text
 192.168.67.1 nexus.passport.com login.passport.com register.passport.com
 192.168.67.1 memberservices.passport.com www.passport.com nexusrdr.passport.com
 ```
 
-## Проверка
+## Verify
 
-Полный набор тестов:
+Full test suite:
 
 ```powershell
 go test -count=1 ./...
 ```
 
-Сборка:
+Build:
 
 ```powershell
 go build ./cmd/lunapassport
 ```
 
-Простой HTTP smoke test:
+HTTP smoke test:
 
 ```powershell
 curl.exe -i http://127.0.0.1:8080/healthz
@@ -185,12 +196,19 @@ curl.exe -i http://127.0.0.1:8080/login2.srf
 curl.exe -i -H "Authorization: Passport1.4 sign-in=test%40example.com,pwd=testpass" http://127.0.0.1:8080/login2.srf
 ```
 
-Для XP-теста полезно зафиксировать последовательность запросов:
-`/rdr/pprdr.asp`, затем `/login2.srf`, затем запрос с
-`Authorization: Passport1.4`.
+For an XP-oriented capture, record `/rdr/pprdr.asp`, then `/login2.srf`, then a
+request with `Authorization: Passport1.4`.
 
-## Ограничения и безопасность
+## Limits & security
 
-Проект предназначен только для изолированной лаборатории. Не публикуй его в
-интернете, не используй реальные пароли и не рассчитывай на эти mock-токены
-для доступа к настоящим сервисам.
+This project is an isolated laboratory only. Do not publish it to the internet,
+do not use real passwords, and do not rely on these mock tokens for access to
+real services.
+
+## References
+
+- [Passport Authentication in WinHTTP](https://learn.microsoft.com/en-us/windows/win32/winhttp/passport-authentication-in-winhttp) — Nexus configuration, login flow, and XP credential storage
+- [MS-PASS: Authentication Server Challenge](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pass/a059aaaf-2d4a-40c6-ad96-7175c379ffd7) — `WWW-Authenticate: Passport1.4` challenge syntax
+- [MS-PASS: Protocol Examples](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-pass/2c80637d-438c-4d4b-adc5-903170a779f3) — request, challenge, token, and cookie exchanges
+- [NewWDEvents.PassportAuthenticate](https://learn.microsoft.com/en-us/windows/win32/shell/inewwdevents-passportauthenticate) — XP Wizard authentication callback
+- [WebWizardHost](https://learn.microsoft.com/en-us/windows/win32/shell/webwizardhost) — `FinalNext`, `FinalBack`, `Cancel`, and Wizard page integration

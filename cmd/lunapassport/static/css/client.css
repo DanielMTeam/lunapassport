@@ -1,0 +1,251 @@
+.promo_block{
+	padding: 5px;
+	background: #774074;
+	color: #fff;
+	font-weight: bold;
+	font-size: 12px;
+}
+
+.container{
+    width: 880px;
+}
+
+.content{
+    width: 642px;
+}
+
+.wrapper{
+    border: 1px solid #774074;
+}
+
+tbody{
+    padding: 0;
+    margin: 0;
+    display: block;
+}
+
+.cl1_1{
+    background: url(../img/client/client1_1.png);
+    width: 320px;
+    height: 225px;
+}
+.cl2_1{
+    background: url(../img/client/client3_2.png);
+    width: 320px;
+    height: 225px;
+}
+
+.cl1_2{
+    background: url(../img/client/client2_1.png);
+    width: 320px;
+    height: 225px;
+}
+.cl2_2{
+    background: url(../img/client/client2_2.png);
+    width: 320px;
+    height: 225px;
+}
+
+.cl_bottom{
+    background: url(../img/client/bottom.png);
+    width: 640px;
+    height: 30px;
+}
+
+.intro_pos_one{
+    padding-left: 100px;
+    padding-top: 110px;
+}
+
+.intro_pos_two{
+    padding-left: 80px;
+    padding-top: 140px;
+}
+
+.intro_pos_three{
+    padding-left: 120px;
+    padding-top: 80px;
+}
+
+.intro_pos_four{
+    padding-left: 105px;
+    padding-top: 130px;
+}
+
+.introtext{
+    border: 1px solid #000;
+    background: #f1e6a7;
+    color: #000;
+    font-size: 12px;
+    filter: dropshadow(color=#8F8F8F, offx=2, offy=2);
+    box-shadow: 2px 2px 2px #8F8F8F;
+    width: 150px;
+    padding: 10px;
+}
+
+.dwnldtext{
+    border: 1px solid #000;
+    /* background: #b6f1a7; */
+    background: #7093c0;
+    color: #000;
+    font-size: 12px;
+    filter: dropshadow(color=#8F8F8F, offx=2, offy=2);
+    box-shadow: 2px 2px 2px #8F8F8F;
+    width: 200px;
+    padding: 5px;
+}
+
+.dwnldtext:hover{
+    background: #80a7db;
+}
+
+.dwnldtext:active{
+    background: #577399;
+}
+
+.disclaimer{
+    font-size: 10px;
+    background: #f8ccf7;
+    text-align: center;
+    padding: 5px;
+}
+
+.downloadbtn{
+    background: url(../img/client/ls_bttns_n_h_a.png);
+    background-position: 0px 0px;
+    width: 200px;
+    height: 75px;
+    cursor: pointer;
+}
+
+.downloadbtntext{
+    font-size: 20px;
+    font-weight: bold;
+    padding-left: 70px;
+    padding-top: 25px;
+}
+
+.downloadbtn:hover{
+    background-position: 0px -76px;
+}
+
+.downloadbtn:active{
+    background-position: 0px 75px;
+}
+
+a#dwnlnk{
+    color: #1747e6;
+    text-decoration: none;
+}
+
+a#dwnlnk:hover{
+    color: #022494;
+}
+
+a#dwnlnk:active{
+    color: #fff;
+}
+
+
+/* .client_wrapper{
+    border: 1px solid #af60ab;
+    border-bottom: 1px solid #774074;
+}
+
+.border_client{
+    border: 1px solid #774074;
+}
+
+.client_wrapper table{
+    background: #c660af;
+    color: #fff;
+}
+
+.promo_client_logo{
+    background: url(../img/client/promologo.png);
+    width: 450px;
+    height: 100px;
+}
+
+.promo_contextm{
+    background: url(../img/client/contextm.png);
+    width: 225px;
+    height: 225px;
+}
+
+.promo_leftmenu{
+    background: url(../img/client/leftmenu.png);
+    width: 220px;
+    height: 95px;
+}
+
+.promo_features{
+    padding: 5px;
+    color: #fff;
+}
+
+table h2{
+    margin-left: 20px;
+}
+
+.clpre_features_text{
+    margin-left: 10px;
+    font-size: 14px;
+}
+
+.clfeatures{
+    padding: 10px;
+}
+
+.clfeatures ul{
+  margin: 0;
+}
+
+.clfeatures li{
+  list-style: square;
+}
+
+.predwnld{
+    padding: 10px;
+}
+
+.downloadbtn{
+    background: #e6e6e6;
+    width: 200px;
+    height: 75px;
+    cursor: pointer;
+}
+
+.downloadbtntext{
+    font-size: 20px;
+    font-weight: bold;
+    padding-left: 65px;
+    padding-top: 25px;
+    filter: dropshadow(color=#8F8F8F, offx=2, offy=2);
+    text-shadow: 2px 2px 2px #8F8F8F;
+}
+
+.downloadbtn:hover{
+    background: #c4c3c3;
+}
+
+.downloadbtn:active{
+    background: #8d8d8d;
+}
+
+.sysrq{
+    font-size: 10px;
+    padding: 10px;
+}
+
+.disclaimer{
+    font-size: 10px;
+    background: #f8ccf7;
+    text-align: center;
+    padding: 5px;
+}
+
+a#dwnlnk{
+    color: #fff;
+    text-decoration: none;
+} */

@@ -1,0 +1,26 @@
+body {
+	margin:0;
+	padding:0;
+	font-family: Tahoma, Arial, sans-serif, 'Franklin Gothic Medium';
+	font-size: 12px;
+}
+.container {
+	width: 640px;
+	margin: 10px auto;
+	background: #f2f6fc;
+	border: 1px solid #7aa0e6;
+}
+.message{
+	padding: 20px;
+	font-family: 'Franklin Gothic Medium';
+	font-size: 18px;
+	text-align: center;
+}
+hr{
+	border: 1px solid #7aa0e6;
+}
+.main_logo{
+	background: url(../img/splash/main_logo.png);
+	width: 640px;
+	height: 170px;
+}

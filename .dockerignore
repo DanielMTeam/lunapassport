@@ -1,0 +1,14 @@
+.git
+.cache
+dist
+*.exe
+*.pcap
+*.pcapng
+accounts.db
+passport-mock.crt
+passport-mock.key
+passport-mock-ca.crt
+passport-mock-ca.key
+legacy-tools
+legacy-tools-expanded
+_data/

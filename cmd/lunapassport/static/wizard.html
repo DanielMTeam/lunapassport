@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>{{.Copy.PageTitle}}</title>
+<link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
+<link rel="stylesheet" type="text/css" href="/static/wizard.css">
+<script language="JavaScript" type="text/javascript">
+function setButtons(back, next, last) {
+  try { window.external.SetWizardButtons(back, next, last); } catch (e) {}
+}
+function setHeader(title, subtitle) {
+  try { window.external.SetHeaderText(title, subtitle); } catch (e) {}
+}
+function OnBack() {
+  if ({{.StepNumber}} == 1) {
+    try { window.external.FinalBack(); } catch (e) {}
+  } else {
+    window.location.href = 'defaultwiz.asp?step=' + ({{.StepNumber}} - 1);
+  }
+}
+function OnCancel() {
+  try { window.external.Cancel(); } catch (e) { window.close(); }
+}
+function OnNext() {
+  if ({{.StepNumber}} == 1) {
+    var address = '{{.Email}}';
+    var authenticated = false;
+    try {
+      authenticated = window.external.PassportAuthenticate('__PASSPORT_LOGIN_URL__/passport-signin.asp');
+    } catch (e) {}
+    if (!authenticated) {
+      window.location.href = 'defaultwiz.asp?step=2&email=' + encodeURIComponent(address) + '&nativeerror=1';
+      return;
+    }
+    window.location.href = 'defaultwiz.asp?step=3&email=' + encodeURIComponent(address);
+    return;
+  }
+  if ({{.StepNumber}} == 2) {
+    return;
+  }
+  try { window.external.FinalNext(); } catch (e) {
+    document.getElementById('status').innerHTML = '{{.Copy.FinishMessage}}';
+  }
+}
+function window_onload() {
+  setHeader('{{.Copy.PageTitle}}', '{{.Copy.BrandSubtitle}}');
+  setButtons({{.Back}}, {{if .ErrorText}}0{{else}}1{{end}}, {{.Last}});
+}
+window.onload = window_onload;
+</script>
+</head>
+<body>
+<div class="container wizard-container">
+  <div class="header">
+    <div class="rl_l">
+      <h1 class="txtr">{{.Copy.PageTitle}}</h1>
+      <div class="subtitle txtr">{{.Copy.BrandSubtitle}}</div>
+    </div>
+  </div>
+  <div class="headerline"></div>
+  <div class="main">
+    <div class="content">
+      {{if eq .Step "2"}}
+      <div class="error_splash">
+        {{if .ErrorText}}{{.ErrorText}}{{else}}{{.Copy.NativeMessage}}{{end}}
+      </div>
+      {{else if eq .Step "3"}}
+      <div class="good_splash">
+        <b>{{.Copy.ReadyTitle}}</b>
+        <p><b>{{.PassportName}}</b>: {{.Copy.ReadyMessage}}</p>
+        <p id="status">{{.Copy.FinishMessage}}</p>
+      </div>
+      {{else}}
+      <div class="info_splash">
+        <p>{{.Copy.NativeSignIn}}</p>
+        <p>{{.Copy.NativeNext}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+</body>
+</html>

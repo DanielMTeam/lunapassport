@@ -1,0 +1,39 @@
+.updates_card{
+  width:200px;
+  border:1px solid #d2e9ff;
+  background:#fff;
+  float:left;
+  margin:5px;
+  padding:5px;
+  height: 200px;
+}
+
+.updates_card img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width:128px;
+  height:128px;
+}
+.updates_card h3 {
+  font-size:14px;
+  color:#0b3a72;
+  text-align: center;
+}
+.updates_card p {
+  margin:3px 0;
+  font-size:11px;
+  color:#333;
+  height:28px;
+  overflow:hidden;
+}
+
+.updates_card:hover{
+  border:1px solid #d2e9ff;
+  background:#d2e9ff;
+}
+
+.updates_card:active{
+  border:1px solid #d2e9ff;
+  background:#a6d0f9;
+}

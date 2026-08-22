@@ -1,0 +1,207 @@
+.profile_card{
+	padding: 10px;
+	border-top: 1px solid #9a9a9a;
+	border-right: 1px solid #9a9a9a;
+	border-left: 1px solid #9a9a9a;
+	min-height: 64px;
+}
+.profile_avatar{
+	width: 64px;
+	height: 64px;
+	background: url('../img/noavatar_64.jpg');
+	float: left;
+}
+.profile_name{
+	font-size: 18px;
+	margin-left: 10px;
+	width: 355px;
+	font-weight: bold;
+	float: left;
+}
+.last-visit {
+  white-space: normal;
+  word-wrap: break-word;
+  width: 365px;
+  color: #8c8c8c;
+  font-size: 10px;
+}
+.profile_desc{
+	margin-left: 10px;
+	width: 355px;
+	word-wrap: break-word;
+	float: left;
+}
+.lunabadge{
+	width: 16px;
+	height: 16px;
+	background: url('../img/tabs/about.png');
+	display: inline-block;
+}
+.profile_block{
+	padding: 5px;
+	background: #2b67b3;
+	color: #fff;
+	font-weight: bold;
+	font-size: 12px;
+}
+.profile_subblock{
+	padding: 5px;
+	background: #7db4fb;
+	color: #fff;
+	border-left: 1px solid #2b67b3;
+	border-right: 1px solid #2b67b3;
+	font-size: 10px;
+}
+.profile_block_content {
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #2b67b3;
+  position: relative;
+}
+.profile_block a{
+	color: #fff;
+	text-decoration: none;
+}
+.profile_block a:hover{
+	color: #e8e8e8;
+	text-decoration: none;
+}
+.profile_desc_element_head{
+	color: #8c8c8c;
+}
+.profile_desc_element a{
+	color: #2b67b3;
+}
+.profile_desc_element{
+	display: inline;
+	color: #2b67b3;
+}
+
+.profile_app_icon_container{
+	width: 64px;
+	height: 72px;
+	text-align: center;
+	display: block;
+}
+
+.profile_app_icon{
+	width: 48px;
+	height: 48px;
+}
+
+.profile_app_name{
+	font-size: 11px;
+	width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis; 
+}
+.profile_app_name a{
+	color: #2b67b3;
+	text-decoration: none;
+}
+.profile_app_name a:hover{
+	text-decoration: underline;
+}	
+
+.icon {
+	width: 80px;
+	text-align: center;
+	margin: 10px auto;
+	font-size: 11px;
+	display: inline-block;
+}
+
+.icon-img {
+	display: block;
+	margin: 0 auto;
+	width: 48px;
+	height: 48px;
+}
+
+.icon-text {
+	margin-top: 4px;
+	line-height: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.icon-text a{
+	color: #2b67b3;
+	text-decoration: none;
+}
+
+.icon-text a:hover{
+	text-decoration: underline;
+}
+
+
+/* Пользователи отображаются точно также, как иконки, поэтому переписывать нет смысла */
+.user {
+	width: 80px;
+	text-align: center;
+	margin: 10px auto;
+	font-size: 11px;
+	display: inline-block;
+}
+
+.user-img {
+	display: block;
+	margin: 0 auto;
+	width: 48px;
+	height: 48px;
+}
+
+.user-text {
+	margin-top: 4px;
+	line-height: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.user-text a{
+	color: #2b67b3;
+	text-decoration: none;
+}
+
+.user-text a:hover{
+	text-decoration: underline;
+}
+
+.profile_card_notify{
+	padding: 10px;
+	border-top: 1px solid #9a9a9a;
+	border-right: 5px solid #ff7300;
+    border-left: 5px solid #ff7300;
+	min-height: 16px;
+}
+.profile_card_notify_desc{
+	width: 365px;
+	word-wrap: break-word;
+}
+
+.profile_card_notify_link{
+  font-weight: bold;
+  text-decoration: none;
+  color: #000;
+}
+
+.profile_card_notify_link:hover{
+  text-decoration: none;
+  color: #990000;
+}
+
+.profile_card_notify_link:active{
+  text-decoration: none;
+  color: #b20000;
+}
+
+.profile_card_notify li{
+  list-style: none;
+  padding-left: 24px;
+}
+.profile_card_notify li.notify_folder{background:url(../img/icons.png) no-repeat 0px -328px;}
+.profile_card_notify li.banned{background:url(../img/icons.png) no-repeat 0px -237px;}
+
+.profile_card_notify#banned{
+	border-left: 5px solid #c00000;
+}

@@ -1,0 +1,57 @@
+/* LunaPassport skin for the HTML pages hosted inside the XP Wizard. */
+body {
+  background: #ece9d8;
+  font-family: Tahoma, Arial, sans-serif;
+  font-size: 11px;
+}
+
+.wizard-container {
+  width: 100%;
+  min-width: 360px;
+  box-sizing: border-box;
+}
+
+.wizard-container .header {
+  height: 42px;
+  padding: 6px 10px;
+  background-color: #002ca1;
+}
+
+.wizard-container .header h1 {
+  font-size: 18px;
+}
+
+.wizard-container .main {
+  padding: 8px;
+}
+
+.wizard-container .content {
+  width: auto;
+  padding: 0;
+}
+
+.wizard-container .login_passport_form {
+  background: #ffffff;
+  padding: 6px;
+}
+
+.wizard-container .info_splash,
+.wizard-container .good_splash,
+.wizard-container .error_splash {
+  margin: 8px 0 0;
+  line-height: 16px;
+}
+
+.wizard-container .field {
+  padding: 5px 2px;
+}
+
+.wizard-container input.input-text {
+  width: 96%;
+  box-sizing: border-box;
+}
+
+.wizard-container input[readonly] {
+  background: #f4f7fa;
+  color: #294b76;
+}

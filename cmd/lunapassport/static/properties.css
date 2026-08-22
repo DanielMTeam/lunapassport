@@ -1,0 +1,132 @@
+.properties_content {
+    padding: 10px;
+}
+
+.properties_card {
+    width: 620px;
+    margin: 0 auto;
+    background: #f7f9fc;
+    border: 1px solid #7aa0e6;
+}
+
+.properties_intro {
+    padding: 12px 14px 10px;
+    background: #e4efff;
+    border-bottom: 1px solid #b2c8e6;
+    color: #294b76;
+}
+
+.properties_intro h2 {
+    margin: 0 0 5px;
+    color: #123f91;
+    font-size: 16px;
+}
+
+.properties_intro p {
+    margin: 4px 0;
+}
+
+.required_mark {
+    color: #b00000;
+    font-weight: bold;
+}
+
+.status_message {
+    margin: 10px 14px 0;
+    padding: 7px 9px;
+    border: 1px solid;
+    font-weight: bold;
+}
+
+.success_message {
+    background: #e8f5df;
+    border-color: #9cbd82;
+    color: #35611f;
+}
+
+.error_message {
+    background: #fff0ed;
+    border-color: #d69b91;
+    color: #8b2115;
+}
+
+.properties_fieldset {
+    margin: 14px;
+    padding: 10px 12px 4px;
+    border: 1px solid #bfd2e4;
+    background: #ffffff;
+}
+
+.properties_fieldset legend {
+    padding: 0 5px;
+    color: #123f91;
+    font-weight: bold;
+}
+
+.form_row {
+    margin: 0 0 12px;
+}
+
+.last_form_row {
+    margin-bottom: 4px;
+}
+
+.form_row label {
+    display: block;
+    margin-bottom: 4px;
+    color: #333333;
+    font-weight: bold;
+}
+
+.text_input {
+    width: 360px;
+    height: 21px;
+    padding: 2px 4px;
+    border: 1px solid #7f9db9;
+    background: #ffffff;
+    color: #111111;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+}
+
+.text_input:focus {
+    border-color: #215dc6;
+    background: #fffef0;
+}
+
+.field_help {
+    margin-top: 3px;
+    color: #666666;
+    font-size: 11px;
+}
+
+.form_actions {
+    margin: 0 14px 10px;
+}
+
+.primary_button,
+.secondary_button {
+    min-width: 190px;
+    padding: 4px 10px;
+    border: 1px solid #2457a6;
+    font-family: Tahoma, Arial, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.primary_button {
+    background: #2f78d6;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.secondary_button {
+    background: #e7edf7;
+    color: #294b76;
+}
+
+.logout_form {
+    margin: 0 14px 14px;
+    padding-top: 10px;
+    border-top: 1px solid #d1dce9;
+}

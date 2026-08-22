@@ -1,0 +1,104 @@
+.review_body{
+    border: 1px solid #215dc6;
+    background: #e0edff;
+    font-size: 12px;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+.review_author{
+    font-size: 12px;
+    color: #000;
+}
+.review_date{
+    color: #294b76;
+    font-size: 10px;
+}
+
+.review_author a{
+    text-decoration: none;
+    color: #215dc6;
+}
+
+.review_body hr{
+    border-bottom: 1px solid #215dc6;
+}
+
+.review_text{
+    width: 400px;
+    word-wrap: break-word;
+}
+
+.review_actions{
+    font-size: 10px;
+}
+
+.rating{
+    display: inline-block;
+    width: 80px;
+    height: 16px;
+    background: url(../img/rating.png) no-repeat 0px -160px;
+}
+
+.r5{
+    background: url(../img/rating.png) no-repeat 0px 0px;
+}
+
+.r4_5{
+    background: url(../img/rating.png) no-repeat 0px -16px;
+}
+
+.r4{
+    background: url(../img/rating.png) no-repeat 0px -32px;
+}
+
+.r3_5{
+    background: url(../img/rating.png) no-repeat 0px -48px;
+}
+
+.r3{
+    background: url(../img/rating.png) no-repeat 0px -64px;
+}
+
+.r2_5{
+    background: url(../img/rating.png) no-repeat 0px -80px;
+}
+
+.r2{
+    background: url(../img/rating.png) no-repeat 0px -96px;
+}
+
+.r1_5{
+    background: url(../img/rating.png) no-repeat 0px -112px;
+}
+
+.r1{
+    background: url(../img/rating.png) no-repeat 0px -128px;
+}
+
+.r0_5{
+    background: url(../img/rating.png) no-repeat 0px -144px;
+}
+
+.reply_adm{
+    padding: 10px;
+    display: block;
+}
+
+.reply_adm_arrow{
+    width: 48px;
+    height: 48px;
+    background: url(../img/reply_arrow.png);
+    background-repeat: no-repeat;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.reply_adm_body{
+    border: 1px solid #215dc6;
+    display: inline-block;
+    padding: 10px;
+}
+
+.reply_adm_text{
+    width: 330px;
+}

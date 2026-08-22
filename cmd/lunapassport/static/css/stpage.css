@@ -1,0 +1,245 @@
+﻿/* ура новый выпуск шоу "костыли" */
+/* зато работает кста */
+.st_general_card{
+    padding: 10px;
+    zoom: 1;
+}
+
+.st_app_icon{
+    float: left;
+	width: 48px;
+	height: 48px;
+}
+
+.st_card_title{
+    float: left;
+    margin-left: 15px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.st_card_author{
+    float: left;
+    margin-left: 15px;
+    font-size: 11px;
+}
+
+.st_card_desc{
+    float: left;
+    margin-left: 15px;
+    font-size: 14px;
+}
+
+.st_clearb{
+    clear: both;
+    height: 0;
+    overflow: hidden;
+    font-size: 0;
+}
+
+.st_price{
+    float: right;
+    font-weight: bold;
+    font-size: 14px;
+    color: #b20000;
+}
+
+.st_price.free{
+    color: #5fa359;
+}
+
+.st_price.demo{
+    color: #ff7300;
+}
+
+.st_headerline{
+    height: 2px;
+    background: #294b76 url('../img/headline.png');
+    line-height: 1px;
+    font-size: 0;
+    overflow: hidden;
+}
+
+.st_inst_button{
+    font-weight: bold;
+    margin-left: 35px;
+    font-size: 16px;
+    margin-top: 3px;
+}
+
+.setup_button_img{
+    float: left;
+    width: 28px;
+    height: 28px;
+    background: url(../img/arrowsprite.png) no-repeat;
+    margin-left: 5px;
+}
+
+.setup_button_img:active{
+    background-position: -56px 0;
+}
+
+.setup_button_img:disabled{
+    background-position: -84px 0;
+}
+
+.setup_button_img a{
+    color: #000;
+    text-decoration: none;
+}
+
+.setup_button_img a:hover{
+    color: #414141;
+}
+
+.setup_button_img a:active{
+    color: #b20000;
+}
+
+.section{
+    padding: 0;
+    zoom: 1;
+}
+
+.st_other_card{
+    padding: 10px;
+    zoom: 1;
+}
+
+.st_scr{
+    width: 120px;
+    height: 90px;
+    border: 3px solid #d2e9ff;
+    background: #fff;
+    float: left;
+    margin: 5px;
+}
+
+.st_scr img{
+    width: 120px;
+    display: block;
+}
+
+.st_scr a{
+    color: #000;
+    text-decoration: none;
+}
+
+.setup a{
+    color: #000;
+    text-decoration: none;
+}
+
+.setup a:hover{
+    color: #5fa359;
+}
+
+.setup a:active{
+    color: #b20000;
+}
+
+.st_desc{
+    padding: 10px;
+}
+
+.st_precard{
+    float: left;
+    width: 345px;
+    margin-left: 15px;
+    text-align: left;
+
+}
+
+.app_badge{
+    padding: 5px;
+    font-weight: bold;
+}
+
+.app_badge#editor_choice{
+    color: #fff;
+    border-top: 1px solid #6daada;
+    border-bottom: 1px solid #6daada;
+    background: #2b67b3;
+}
+
+.app_badge#verified{
+    color: #fff;
+    background: #5fa359;
+    border-top: 1px solid #006000;
+    border-bottom: 1px solid #006000;
+}
+
+.app_badge#exclusive{
+    color: #fff;
+    background: #bb0000;
+    border-top: 1px solid #600000;
+    border-bottom: 1px solid #600000;
+}
+
+.app_badge li{
+    padding-left: 24px;
+    list-style: none;
+    background: url(../img/storebadges.jpg);
+}
+
+.app_badge #award{
+    background-position: 0px -5px;
+    background-repeat: no-repeat;
+}
+
+.app_badge #official{
+    background-position: 0px -29px;
+    background-repeat: no-repeat;
+}
+
+.app_badge #exclusive{
+    background-position: 0px -53px;
+    background-repeat: no-repeat;
+}
+
+/* IE6 MOMENT */
+.st_card_title,
+.st_card_author,
+.st_card_desc{
+    float: none;
+    margin-left: 0;
+}
+
+.st_rate_block{
+    display: inline-block;
+    padding: 10px;
+}
+
+.st_rate_block_left{
+    padding: 10px;
+    float: left;
+}
+
+.st_rate_block_right{
+    padding: 15px;
+    width: 66%;
+    float: left;
+}
+
+.st_rate_summary{
+    font-size: 48px;
+    font-weight: bold;
+}
+.st_rate_info{
+    padding: 10px;
+    display: inline-block;
+}
+
+.st_rate_block a{
+    color: #000;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.st_rate_block a:active{
+    color: #b20000;
+}
+
+.st_rate_block a:hover{
+    color: #990000;
+}

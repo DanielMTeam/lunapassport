@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Passport Account - LunaPassport</title>
+<link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
+<link rel="stylesheet" type="text/css" href="/static/properties.css">
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+    <div class="rl_l">
+        <h1 class="txtr">LunaPassport</h1>
+        <div class="subtitle txtr">.NET Passport account properties</div>
+    </div>
+</div>
+
+<div class="headerline"></div>
+<div class="main">
+    <div class="content properties_content">
+        <div class="properties_card">
+            <div class="properties_intro">
+                <h2>Account settings</h2>
+                <p>Update the information used by LunaPassport and supported applications.</p>
+                <p><span class="required_mark">*</span> Required fields.</p>
+            </div>
+
+            {{if .Saved}}<div class="status_message success_message">Account settings saved.</div>{{end}}
+            {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
+
+            <form action="/ppsecure/MSRV_EditProfile.asp" method="post">
+                <fieldset class="properties_fieldset">
+                    <legend>Passport account</legend>
+
+                    <div class="form_row">
+                        <label for="email">E-mail address <span class="required_mark">*</span></label>
+                        <input class="text_input" id="email" type="text" name="email" value="{{.Username}}" required="required">
+                    </div>
+
+                    <div class="form_row">
+                        <label for="passport_name">Passport name <span class="required_mark">*</span></label>
+                        <input class="text_input" id="passport_name" type="text" name="passport_name" value="{{.PassportName}}" required="required">
+                    </div>
+
+                    <div class="form_row">
+                        <label for="password">New password</label>
+                        <input class="text_input" id="password" type="password" name="password" value="">
+                        <div class="field_help">Leave blank to keep the current password.</div>
+                    </div>
+
+                    <div class="form_row">
+                        <label for="secret_question">Secret question <span class="required_mark">*</span></label>
+                        <input class="text_input" id="secret_question" type="text" name="secret_question" value="{{.SecretQuestion}}" required="required">
+                    </div>
+
+                    <div class="form_row last_form_row">
+                        <label for="secret_answer">Secret answer {{if not .HasSecretAnswer}}<span class="required_mark">*</span>{{end}}</label>
+                        <input class="text_input" id="secret_answer" type="password" name="secret_answer" value=""{{if not .HasSecretAnswer}} required="required"{{end}}>
+                        <div class="field_help">{{if .HasSecretAnswer}}Leave blank to keep the current answer.{{else}}Enter an answer to finish setting up the question.{{end}}</div>
+                    </div>
+                </fieldset>
+
+                <div class="form_actions">
+                    <input class="primary_button" type="submit" value="Save account settings">
+                </div>
+            </form>
+
+            <form class="logout_form" action="/logout" method="post">
+                <input class="secondary_button" type="submit" value="Sign out of LunaPassport">
+            </form>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+
+</html>

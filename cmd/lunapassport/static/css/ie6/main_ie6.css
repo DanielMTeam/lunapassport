@@ -1,0 +1,48 @@
+.sidebar li {
+  background: url(../img/icons.jpg);
+  background-repeat: no-repeat;
+}
+
+.actionsm li.offsite{background:url(../img/icons_ie6.jpg) no-repeat 0px -415px;}
+.actionsm li.alert{background:url(../img/icons_ie6.jpg) no-repeat 0px -243px;}
+.actionsm li.otherapps{background:url(../img/icons_ie6.jpg) no-repeat 0px -285px;}
+.actionsm li.editapp{background:url(../img/icons_ie6.jpg) no-repeat 0px -264px;}
+
+.info_block li.top{background:url(../img/icons_ie6.jpg) no-repeat 0px -24px;}
+.info_block li.uni{background:url(../img/icons_ie6.jpg) no-repeat 0px -412px;}
+.info_block li.com{background:url(../img/icons_ie6.jpg) no-repeat 0px -282px;}
+.info_block li.nxt{background:url(../img/icons_ie6.jpg) no-repeat 0px -224px;}
+
+
+.error_icon_small{
+  background: url(../img/error_micro_ie6.jpg) no-repeat;
+}
+
+.warning_icon_small{
+  background: url(../img/alert_micro_ie6.jpg) no-repeat;
+}
+
+.info_icon_small{
+  background: url(../img/info_micro_ie6.jpg) no-repeat;
+}
+
+.good_icon_small{
+  background: url(../img/good_micro_ie6.jpg) no-repeat;
+}
+
+.info_icon{
+  background: url(../img/info_small_ie6.jpg) no-repeat;
+}
+
+.error_icon{
+  background: url(../img/error_small_ie6.jpg) no-repeat;
+}
+
+.warning_icon{
+  background: url(../img/alert_small_ie6.jpg) no-repeat;
+}
+
+.good_icon{
+  background: url(../img/good_small_ie6.jpg) no-repeat;
+}
+

@@ -1,0 +1,15 @@
+passport-mock.crt
+passport-mock.key
+passport-mock-ca.crt
+passport-mock-ca.key
+*.exe
+*.pcap
+*.pcapng
+accounts.db
+legacy-smoke.*
+.tmp-lunapassport-import/
+dist/
+.cache/
+legacy-tools/
+_data/
+.env

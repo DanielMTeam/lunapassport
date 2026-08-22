@@ -1,0 +1,20 @@
+body {
+	margin: 150px 0 150px 0;
+	padding:0;
+	font-family: Tahoma, Arial, sans-serif;
+	font-size: 12px;
+}
+.container {
+	width: 640px;
+	margin: auto;
+}
+.message{
+	padding: 20px;
+	font-size: 16px;
+	text-align: center;
+}
+.main_logo{
+	background: url(../img/splash/main_logo_unav.jpg);
+	width: 640px;
+	height: 170px;
+}

@@ -1,0 +1,22 @@
+/* IE6 у нас такой особенный */
+.user {
+    display: inline;
+    zoom: 1;   
+}
+
+.user-img {
+	display: block;
+}
+
+.icon {
+    display: inline;
+    zoom: 1;
+}
+
+.icon-img {
+	display: block;
+}
+
+.profile_card_notify{
+	zoom: 1;
+}

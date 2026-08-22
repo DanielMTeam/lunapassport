@@ -1,0 +1,177 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Tahoma, Arial, sans-serif, 'Franklin Gothic Medium';
+  font-size: 12px;
+  background: #ece9d8;
+}
+.container {
+  background: #f2f6fc;
+  border: 1px solid #7aa0e6;
+}
+.rl_l{
+  float: right;
+}
+
+h4{
+  font-size: 14px;
+  margin: 5px auto;
+}
+
+.announcement{
+  padding: 8px;
+  text-align: center;
+  background: #bfe0ff;
+  border-bottom: 1px solid #215dc6;
+  color: #000;
+}
+
+.announcement a#primary{
+  font-weight: bold;
+}
+
+.announcement a{
+  color: #000;
+  text-decoration: none;
+}
+
+.announcement a:hover{
+  color: #cc0000;
+}
+
+
+.announcement a:active{
+  color: #990000;
+}
+
+.header {
+  background:#002ca1 url('../img/xheadpasp.jpg') no-repeat;
+  color:#fff;
+  padding:6px 10px;
+  height:50px;
+}
+.header h1 {
+  margin:0;
+  font-size:20px;
+}
+
+.subtitle a {
+  color: #fff;
+}
+
+.header .subtitle {
+  font-size:11px;
+}
+
+.dm_menu {
+  clear:both;
+  padding:8px;
+  background:#000;
+  font-size:11px;
+  color:#fff;
+}
+.dm_menu a{
+    color:#fff;
+}
+
+.footer {
+  clear:both;
+  padding:12px;
+  background:#e0edff;
+  font-size:11px;
+  color:#294b76;
+}
+.footer a{
+    color:#294b76;
+}
+.fl{
+    float: left;
+}
+.fr{
+    float: right;
+    display: inline;
+}
+.txtr{
+    text-align: right;
+}
+
+.info_splash{
+  padding:10px;
+  background:#f4f7fa;
+  border:1px solid #bfd2e4;
+  margin-bottom:10px;
+}
+
+.content{
+    padding: 5px;
+}
+
+.headerline{
+    height: 6px;
+    background: #294b76 url('../img/headline.png');
+    line-height: 1px;
+    font-size: 0;
+    overflow: hidden;
+}
+
+.login_passport_form{
+    border: 1px solid #7aa0e6;
+    padding: 5px;
+}
+
+.field {
+  padding: 2px;
+}
+
+.field a{
+  color: #215dc6;
+  text-decoration: none;
+}
+
+.field a:hover{
+  color: #316ac5;
+  text-decoration: none;
+}
+
+.field a:active{
+  color: #294b76;
+  text-decoration: none;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+input.input-text{
+    width: 99%; /* IE6 adaptation */
+}
+
+input[type=submit] {
+	border:1px solid #7aa0e6;
+	background:#2f78d6;
+	color:#fff;
+	padding:4px 6px;
+	font-size:12px;
+	text-decoration: none;
+}
+
+.faq_card{
+    margin-top: 5px;
+}
+
+#faq_title {
+    background: #fbf3c3;
+    margin: 0 5px;
+    padding: 5px;
+    font-weight: bold;
+    border: 1px solid #d7cf9e;
+    border-bottom: 0;
+}
+
+#faq_content {
+    background: #fafafa;
+    margin: 0 5px 10px;
+    padding: 5px 5px 5px 10px;
+    border: 1px solid #ddd;
+}

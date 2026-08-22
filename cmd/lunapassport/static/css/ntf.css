@@ -1,0 +1,38 @@
+.xp-popup {
+  position: absolute;
+  display: none;
+  background: #ffffe1;
+  border: 1px solid #808080;
+  font: 11px Tahoma, sans-serif;
+  padding: 6px;
+  z-index: 9999;
+  width: 200px;
+}
+
+/* Хвостик балуна */
+.xp-popup .tail {
+  position: absolute;
+  top: -12px;
+  left: 0px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 12px solid #ffffe1;
+  z-index: 9998;
+}
+
+.xp-popup .popup-content {
+  color: #000;
+}
+
+.xp-popup input {
+  width: 95%;
+  margin-bottom: 5px;
+  font: 11px Tahoma, sans-serif;
+}
+
+.xp-popup button {
+  font: 11px Tahoma, sans-serif;
+  padding: 2px 6px;
+}

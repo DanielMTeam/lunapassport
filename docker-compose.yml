@@ -1,0 +1,49 @@
+name: lunapassport
+
+services:
+  lunapassport:
+    build:
+      context: .
+    restart: unless-stopped
+    command:
+      - -http
+      - :8080
+      - -db
+      - /data/accounts.db
+      - -passport-host
+      - ${PASSPORT_HOST:-passport-staging.alexsyw.me}
+      - -memberservices-host
+      - ${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}
+      - -passport-cookie-domain
+      - ${PASSPORT_COOKIE_DOMAIN:-.alexsyw.me}
+    volumes:
+      - ./_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+
+      # Serve the configured hosts plus the legacy XP Wizard bootstrap alias.
+      # Generated Passport URLs still point to the configured staging hosts.
+      - traefik.http.routers.lunapassport-http.rule=Host(`${PASSPORT_HOST:-passport-staging.alexsyw.me}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}`) || Host(`register.passport.com`)
+      - traefik.http.routers.lunapassport-http.entrypoints=web
+      - traefik.http.routers.lunapassport-http.service=lunapassport-http
+      - traefik.http.services.lunapassport-http.loadbalancer.server.port=8080
+
+      # Traefik terminates TLS and forwards plain HTTP to the mock.
+      - traefik.http.routers.lunapassport-https.rule=Host(`${PASSPORT_HOST:-passport-staging.alexsyw.me}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}`) || Host(`register.passport.com`)
+      - traefik.http.routers.lunapassport-https.entrypoints=websecure
+      - traefik.http.routers.lunapassport-https.tls=true
+      - traefik.http.routers.lunapassport-https.service=lunapassport-https
+      - traefik.http.services.lunapassport-https.loadbalancer.server.port=8080
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+    name: traefik

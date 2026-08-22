@@ -1,0 +1,69 @@
+.add_app_form {
+    padding: 12px;
+    background: #ffffff;
+    border-top: 1px solid #7f9db9;
+}
+
+.add_app_form label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.input-text {
+    width: 390px;
+    border: 1px solid #7f9db9;
+    padding: 3px;
+    font: 11px Tahoma;
+    background: #fff;
+}
+
+.input-text:focus {
+    border-color: #316ac5;
+    background-color: #fffef2;
+}
+
+.add_app_form select {
+    border: 1px solid #7f9db9;
+    font: 11px Tahoma;
+    padding: 5px;
+    background: #fff;
+    width: 390px;
+}
+
+.action_button{
+	border:1px solid #7aa0e6;
+	background:#2f78d6;
+	color:#fff;
+	padding:4px 6px;
+	font-size:12px;
+	text-decoration: none;
+}
+
+.agree {
+    margin: 6px 0;
+}
+
+.add_app_form_label{
+    font-size: 10px;
+    color: #b3b3b3;
+}
+
+.add_app_pad{
+    padding: 5px;
+}
+
+.add_app_card{
+	margin-bottom:12px;
+	border:1px solid #cfe1ff;
+	background:#ffffff;
+	padding:6px;
+}
+
+.add_app_title{
+    margin-bottom: 5px;
+}
+
+.add_app_card h1{
+    font-size: 16px;
+    margin-left: 5px;
+}

@@ -1,0 +1,18 @@
+.tabs {
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  padding: 0;
+}
+
+.tabs img a{
+text-decoration: none;
+}
+
+.tab-bar {
+  background: #f0f0f0;
+  overflow: hidden;
+  border-right: 1px solid #9a9a9a; /* IE6 bruuuh */
+  border-left: 1px solid #9a9a9a; 
+  padding: 2px 2px 0 2px;
+  zoom: 1; /* IE6 bruuuh */
+}

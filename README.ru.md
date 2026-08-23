@@ -121,6 +121,15 @@ docker compose up --build -d
 docker compose ps
 ```
 
+Для запуска опубликованного образа из GHCR без локальной сборки:
+
+```powershell
+docker compose -f docker-compose.ext.yml up -d
+```
+
+Другой тег можно задать через `LUNAPASSPORT_IMAGE`, например
+`ghcr.io/danielmteam/lunapassport:v1.0.0`.
+
 Сеть `traefik` должна существовать до запуска Compose. Внешний Traefik должен
 иметь Docker provider и entrypoints `web` и `websecure`. TLS-сертификаты и их
 пути принадлежат внешнему Traefik. Этот Compose не публикует порты и не

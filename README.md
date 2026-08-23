@@ -120,6 +120,15 @@ docker compose up --build -d
 docker compose ps
 ```
 
+To run the published GHCR image instead of building locally:
+
+```powershell
+docker compose -f docker-compose.ext.yml up -d
+```
+
+Set `LUNAPASSPORT_IMAGE` to use another tag, for example
+`ghcr.io/danielmteam/lunapassport:v1.0.0`.
+
 The `traefik` network must exist before Compose starts. External Traefik needs a
 Docker provider and entrypoints `web` and `websecure`. TLS certificates and
 their file paths belong to the external Traefik deployment. This Compose file

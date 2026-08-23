@@ -17,9 +17,8 @@ The Go service is HTTP-only. Traefik or Nginx terminates TLS in front of it.
   migrations, account CRUD, and Passport session persistence.
 - `tests/lunapassport_test.go` — black-box integration test that builds and
   exercises the server as a real process.
-- `docker-compose.yml` — Traefik + LunaPassport stack; Traefik owns ports 80
-  and 443 while LunaPassport listens on port 8080 inside the network.
-- `traefik/dynamic.yml` — TLS options and certificate file paths.
+- `docker-compose.yml` — LunaPassport service for an external Traefik instance;
+  LunaPassport listens on port 8080 inside the external `traefik` network.
 - `.env.example` — custom Passport and memberservices host configuration.
 - `passport-test.reg` — ready-to-import WinXP WinHTTP Passport Test registry
   configuration for the staging login host.
@@ -42,9 +41,11 @@ test account `test@example.com` / `testpass`. The database path is controlled
 by `-db`; account profile fields can be changed through
 `/ppsecure/MSRV_EditProfile.asp` after authentication.
 
-For the full reverse-proxy environment:
+For the full reverse-proxy environment, run an external Traefik instance on the
+`traefik` Docker network first:
 
 ```powershell
+docker network create traefik
 Copy-Item .env.example .env
 docker compose up --build -d
 docker compose ps
@@ -52,7 +53,8 @@ docker compose ps
 
 The Compose service mounts `_data` at `/data`, stores the database at
 `/data/accounts.db`, and passes custom-domain values from `.env` to the Go
-process. TLS is configured in Traefik, not in Go.
+process. TLS and certificate files belong to the external Traefik deployment,
+not this repository.
 
 ## Coding Style and Naming
 

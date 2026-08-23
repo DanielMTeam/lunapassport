@@ -21,7 +21,7 @@ func main() {
 	dbPath := flag.String("db", "accounts.db", "SQLite database path")
 	passportHost := flag.String("passport-host", os.Getenv("PASSPORT_HOST"), "Central Passport host for Nexus, login, and Wizard endpoints")
 	memberservicesHost := flag.String("memberservices-host", os.Getenv("MEMBERSERVICES_HOST"), "Passport memberservices host")
-	cookieDomain := flag.String("passport-cookie-domain", os.Getenv("PASSPORT_COOKIE_DOMAIN"), "Shared Passport cookie domain, for example .alexsyw.me")
+	cookieDomain := flag.String("passport-cookie-domain", os.Getenv("PASSPORT_COOKIE_DOMAIN"), "Shared Passport cookie domain, for example .lunastore.app")
 	flag.Parse()
 
 	accounts, err := openAccountStore(*dbPath, passportAccount{

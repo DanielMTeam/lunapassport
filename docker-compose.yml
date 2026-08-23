@@ -11,11 +11,11 @@ services:
       - -db
       - /data/accounts.db
       - -passport-host
-      - ${PASSPORT_HOST:-passport-staging.alexsyw.me}
+      - ${PASSPORT_HOST:-passport-staging.lunastore.app}
       - -memberservices-host
-      - ${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}
+      - ${MEMBERSERVICES_HOST:-memberservices-staging.lunastore.app}
       - -passport-cookie-domain
-      - ${PASSPORT_COOKIE_DOMAIN:-.alexsyw.me}
+      - ${PASSPORT_COOKIE_DOMAIN:-.lunastore.app}
     volumes:
       - ./_data:/data
     healthcheck:
@@ -29,13 +29,13 @@ services:
 
       # Serve the configured hosts plus the legacy XP Wizard bootstrap alias.
       # Generated Passport URLs still point to the configured staging hosts.
-      - traefik.http.routers.lunapassport-http.rule=Host(`${PASSPORT_HOST:-passport-staging.alexsyw.me}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}`) || Host(`register.passport.com`)
+      - traefik.http.routers.lunapassport-http.rule=Host(`${PASSPORT_HOST:-passport-staging.lunastore.app}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.lunastore.app}`) || Host(`register.passport.com`)
       - traefik.http.routers.lunapassport-http.entrypoints=web
       - traefik.http.routers.lunapassport-http.service=lunapassport-http
       - traefik.http.services.lunapassport-http.loadbalancer.server.port=8080
 
       # Traefik terminates TLS and forwards plain HTTP to the mock.
-      - traefik.http.routers.lunapassport-https.rule=Host(`${PASSPORT_HOST:-passport-staging.alexsyw.me}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}`) || Host(`register.passport.com`)
+      - traefik.http.routers.lunapassport-https.rule=Host(`${PASSPORT_HOST:-passport-staging.lunastore.app}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.lunastore.app}`) || Host(`register.passport.com`)
       - traefik.http.routers.lunapassport-https.entrypoints=websecure
       - traefik.http.routers.lunapassport-https.tls=true
       - traefik.http.routers.lunapassport-https.service=lunapassport-https

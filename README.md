@@ -89,9 +89,9 @@ Docker Compose defaults to the project staging hosts. Copy `.env.example` to
 `.env` when you need custom values:
 
 ```text
-PASSPORT_HOST=passport-staging.alexsyw.me
-MEMBERSERVICES_HOST=memberservices-staging.alexsyw.me
-PASSPORT_COOKIE_DOMAIN=.alexsyw.me
+PASSPORT_HOST=passport-staging.lunastore.app
+MEMBERSERVICES_HOST=memberservices-staging.lunastore.app
+PASSPORT_COOKIE_DOMAIN=.lunastore.app
 ```
 
 - `PASSPORT_HOST` — Nexus, login, registration, redirects, and Wizard
@@ -121,17 +121,11 @@ docker compose ps
 ```
 
 The `traefik` network must exist before Compose starts. External Traefik needs a
-Docker provider, entrypoints `web` and `websecure`, and must load TLS
-certificates plus `traefik/dynamic.yml`. This Compose file does not publish
-ports or start a second Traefik instance.
+Docker provider and entrypoints `web` and `websecure`. TLS certificates and
+their file paths belong to the external Traefik deployment. This Compose file
+does not publish ports or start a second Traefik instance.
 
-Account state lives in `_data/accounts.db`. Certificate and key paths must match
-`traefik/dynamic.yml`:
-
-```text
-_data/passport-mock.crt
-_data/passport-mock.key
-```
+Account state lives in `_data/accounts.db`.
 
 The certificate must cover every hostname XP will use. Hostnames come from the
 hosts file and the certificate, not from this Compose stack.
@@ -147,7 +141,7 @@ docker compose down
 For the staging setup, add to the XP `hosts` file:
 
 ```text
-192.168.67.1 passport-staging.alexsyw.me memberservices-staging.alexsyw.me
+192.168.67.1 passport-staging.lunastore.app memberservices-staging.lunastore.app
 ```
 
 Replace the IP with the machine that runs Traefik. Import the signing CA once

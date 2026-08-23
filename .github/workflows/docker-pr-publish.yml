@@ -16,6 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  VERSION: pr-${{ github.event.workflow_run.pull_requests[0].number }}
 
 jobs:
   build:
@@ -67,6 +68,8 @@ jobs:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

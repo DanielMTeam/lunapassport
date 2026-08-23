@@ -124,10 +124,9 @@ Docker Compose defaults to the project staging hosts. Copy `.env.example` to
 `.env` when you need custom values:
 
 ```text
-PASSPORT_HOST=passport-staging.alexsyw.me
-MEMBERSERVICES_HOST=memberservices-staging.alexsyw.me
-PASSPORT_COOKIE_DOMAIN=.alexsyw.me
-OAUTH_SECRET_PEPPER=
+PASSPORT_HOST=passport-staging.lunastore.app
+MEMBERSERVICES_HOST=memberservices-staging.lunastore.app
+PASSPORT_COOKIE_DOMAIN=.lunastore.app
 ```
 
 - `PASSPORT_HOST` — Nexus, login, registration, redirects, Wizard, OAuth UI
@@ -203,18 +202,21 @@ docker compose up --build -d
 docker compose ps
 ```
 
-The `traefik` network must exist before Compose starts. External Traefik needs a
-Docker provider, entrypoints `web` and `websecure`, and must load TLS
-certificates plus `traefik/dynamic.yml`. This Compose file does not publish
-ports or start a second Traefik instance.
+To run the published GHCR image instead of building locally:
 
-Account state lives in `_data/accounts.db`. Certificate and key paths must match
-`traefik/dynamic.yml`:
-
-```text
-_data/passport-mock.crt
-_data/passport-mock.key
+```powershell
+docker compose -f docker-compose.ext.yml up -d
 ```
+
+Set `LUNAPASSPORT_IMAGE` to use another tag, for example
+`ghcr.io/danielmteam/lunapassport:v1.0.0`.
+
+The `traefik` network must exist before Compose starts. External Traefik needs a
+Docker provider and entrypoints `web` and `websecure`. TLS certificates and
+their file paths belong to the external Traefik deployment. This Compose file
+does not publish ports or start a second Traefik instance.
+
+Account state lives in `_data/accounts.db`.
 
 The certificate must cover every hostname XP will use. Hostnames come from the
 hosts file and the certificate, not from this Compose stack.
@@ -225,12 +227,30 @@ Stop the environment:
 docker compose down
 ```
 
+## GitHub Container Registry
+
+GitHub Actions publishes the image to GHCR:
+
+- pushes to `main` publish `ghcr.io/<owner>/lunapassport:latest`;
+- version tags such as `v1.0.0` publish `ghcr.io/<owner>/lunapassport:v1.0.0`;
+- successful pull requests publish `ghcr.io/<owner>/lunapassport:pr-<number>`
+  and add the pull command to the PR comments.
+- published images include both `linux/amd64` and `linux/arm64` platforms.
+
+The PR package is rebuilt when the PR changes. The package may require GitHub
+Container Registry authentication if the repository package is private.
+
+The scheduled cleanup removes `pr-<number>` images for closed pull requests
+and for pull requests that have not been updated for 30 days. It also runs
+immediately when a pull request is closed and can be started manually from
+the Actions tab.
+
 ## Windows XP
 
 For the staging setup, add to the XP `hosts` file:
 
 ```text
-192.168.67.1 passport-staging.alexsyw.me memberservices-staging.alexsyw.me
+192.168.67.1 passport-staging.lunastore.app memberservices-staging.lunastore.app
 ```
 
 Replace the IP with the machine that runs Traefik. Import the signing CA once
@@ -239,7 +259,7 @@ into Trusted Root Certification Authorities.
 For WinHTTP Passport Test, import:
 
 ```text
-passport-test.reg
+tools/passport-test.reg
 ```
 
 That file writes Passport URLs under `Internet Settings\Passport`, which the
@@ -247,7 +267,7 @@ Wizard reads. On a clean system, `RegistrationUrl`, `LoginServerUrl`,
 `Properties`, `Help`, `Privacy`, and `GeneralRedir` point at the staging hosts.
 On a previously used XP box, old Passport URLs may remain cached — restart the
 app or use a clean profile to clear that cache. For other domains, start from
-`passport-test.reg.example` and replace the host values.
+`tools/passport-test.reg.example` and replace the host values.
 
 Historical default domains:
 

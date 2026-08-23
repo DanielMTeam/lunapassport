@@ -1,6 +1,6 @@
 module lunapassport
 
-go 1.20
+go 1.23
 
 require (
 	github.com/glebarez/sqlite v1.11.0

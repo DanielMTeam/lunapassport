@@ -126,10 +126,9 @@ go run .\cmd\lunapassport -http :8080 -db .\accounts.db
 скопируйте `.env.example` в `.env`:
 
 ```text
-PASSPORT_HOST=passport-staging.alexsyw.me
-MEMBERSERVICES_HOST=memberservices-staging.alexsyw.me
-PASSPORT_COOKIE_DOMAIN=.alexsyw.me
-OAUTH_SECRET_PEPPER=
+PASSPORT_HOST=passport-staging.lunastore.app
+MEMBERSERVICES_HOST=memberservices-staging.lunastore.app
+PASSPORT_COOKIE_DOMAIN=.lunastore.app
 ```
 
 - `PASSPORT_HOST` — Nexus, login, регистрация, redirect, Wizard, OAuth UI
@@ -204,16 +203,21 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Сеть `traefik` должна существовать до Compose. Внешний Traefik: Docker provider,
-entrypoints `web` / `websecure`, TLS и `traefik/dynamic.yml`. Этот Compose не
-публикует порты и не поднимает второй Traefik.
+Для запуска опубликованного образа из GHCR без локальной сборки:
 
-Состояние аккаунтов: `_data/accounts.db`. Пути сертификата:
-
-```text
-_data/passport-mock.crt
-_data/passport-mock.key
+```powershell
+docker compose -f docker-compose.ext.yml up -d
 ```
+
+Другой тег можно задать через `LUNAPASSPORT_IMAGE`, например
+`ghcr.io/danielmteam/lunapassport:v1.0.0`.
+
+Сеть `traefik` должна существовать до запуска Compose. Внешний Traefik должен
+иметь Docker provider и entrypoints `web` и `websecure`. TLS-сертификаты и их
+пути принадлежат внешнему Traefik. Этот Compose не публикует порты и не
+запускает второй экземпляр Traefik.
+
+База и состояние аккаунта лежат в `_data/accounts.db`.
 
 Сертификат должен покрывать все hostname, через которые ходит XP.
 
@@ -221,12 +225,29 @@ _data/passport-mock.key
 docker compose down
 ```
 
+## GitHub Container Registry
+
+GitHub Actions публикует Docker-образ в GHCR:
+
+- push в `main` публикует `ghcr.io/<owner>/lunapassport:latest`;
+- тег версии вроде `v1.0.0` публикует `ghcr.io/<owner>/lunapassport:v1.0.0`;
+- успешный pull request публикует `ghcr.io/<owner>/lunapassport:pr-<number>`
+  и добавляет команду загрузки в комментарий PR.
+- опубликованные образы содержат платформы `linux/amd64` и `linux/arm64`.
+
+PR-пакет пересобирается при изменении PR. Если пакет приватный, для GHCR нужно
+сначала выполнить вход через GitHub Container Registry.
+
+Плановая очистка удаляет образы `pr-<number>` для закрытых PR и для PR, которые
+не обновлялись 30 дней. При закрытии PR очистка запускается сразу; вручную её
+также можно запустить из вкладки Actions.
+
 ## Windows XP
 
 В `hosts` XP для staging:
 
 ```text
-192.168.67.1 passport-staging.alexsyw.me memberservices-staging.alexsyw.me
+192.168.67.1 passport-staging.lunastore.app memberservices-staging.lunastore.app
 ```
 
 IP — машина с Traefik. CA один раз в Trusted Root Certification Authorities.
@@ -234,13 +255,15 @@ IP — машина с Traefik. CA один раз в Trusted Root Certification
 Для WinHTTP Passport Test:
 
 ```text
-passport-test.reg
+tools/passport-test.reg
 ```
 
-Файл пишет Passport URL в `Internet Settings\Passport`. На чистой системе
-`RegistrationUrl`, `LoginServerUrl`, `Properties`, `Help`, `Privacy`,
-`GeneralRedir` указывают на staging. На уже использовавшейся XP старые URL
-могут кэшироваться. Для других доменов — `passport-test.reg.example`.
+Файл настраивает Passport URL в `Internet Settings\Passport`, которые читает
+Wizard. На чистой системе `RegistrationUrl`, `LoginServerUrl`, `Properties`,
+`Help`, `Privacy` и `GeneralRedir` сразу указывают на staging-домены. На уже
+использовавшейся XP старые Passport URL могут оставаться в кэше — перезапуск
+приложения или чистый профиль нужны только для сброса этого кэша. Для других
+доменов используйте `tools/passport-test.reg.example` и замените значения хостов.
 
 Исторические домены:
 

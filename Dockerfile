@@ -1,4 +1,7 @@
-FROM mirror.gcr.io/golang:1.23-alpine AS build
+FROM --platform=$BUILDPLATFORM mirror.gcr.io/golang:1.23-alpine AS build
+
+ARG TARGETOS
+ARG TARGETARCH
 
 ARG VERSION=dev
 

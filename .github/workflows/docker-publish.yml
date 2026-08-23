@@ -34,15 +34,24 @@ jobs:
         run: go test ./tests/...
 
   build:
-    name: 📦 Build - production image
+    name: 📦 Build - production image (${{ matrix.platform }})
     needs: test
     runs-on: ubuntu-latest
-    outputs:
-      source-image: ${{ steps.meta.outputs.tags }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            suffix: amd64
+          - platform: linux/arm64
+            suffix: arm64
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -60,14 +69,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=build-${{ github.sha }}
+            type=raw,value=build-${{ github.sha }}-${{ matrix.suffix }}
 
       - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -101,10 +110,14 @@ jobs:
 
       - name: Promote image tags
         env:
-          SOURCE_IMAGE: ${{ needs.build.outputs.source-image }}
           TARGET_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          SOURCES=(
+            "$IMAGE:build-${GITHUB_SHA}-amd64"
+            "$IMAGE:build-${GITHUB_SHA}-arm64"
+          )
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
-            docker buildx imagetools create --tag "$tag" "$SOURCE_IMAGE"
+            docker buildx imagetools create --tag "$tag" "${SOURCES[@]}"
           done <<< "$TARGET_TAGS"

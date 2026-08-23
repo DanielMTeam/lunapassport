@@ -63,7 +63,9 @@ jobs:
             for (const pullRequest of candidates) {
               const prTag = `pr-${pullRequest.number}`;
               const matches = versions.filter((version) =>
-                version.metadata?.container?.tags?.includes(prTag)
+                version.metadata?.container?.tags?.some((tag) =>
+                  tag === prTag || tag.startsWith(`${prTag}-`)
+                )
               );
 
               for (const version of matches) {

@@ -43,6 +43,8 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
+        with:
+          cache-image: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -72,8 +74,6 @@ jobs:
             VERSION=${{ env.VERSION }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   publish:
     name: 🏡 Publish - PR image

@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Remove matching GHCR package versions
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           PACKAGE_NAME: ${{ github.event.repository.name }}
           STALE_DAYS: '30'

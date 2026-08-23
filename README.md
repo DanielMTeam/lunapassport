@@ -136,6 +136,23 @@ Stop the environment:
 docker compose down
 ```
 
+## GitHub Container Registry
+
+GitHub Actions publishes the image to GHCR:
+
+- pushes to `main` publish `ghcr.io/<owner>/lunapassport:latest`;
+- version tags such as `v1.0.0` publish `ghcr.io/<owner>/lunapassport:v1.0.0`;
+- successful pull requests publish `ghcr.io/<owner>/lunapassport:pr-<number>`
+  and add the pull command to the PR comments.
+
+The PR package is rebuilt when the PR changes. The package may require GitHub
+Container Registry authentication if the repository package is private.
+
+The scheduled cleanup removes `pr-<number>` images for closed pull requests
+and for pull requests that have not been updated for 30 days. It also runs
+immediately when a pull request is closed and can be started manually from
+the Actions tab.
+
 ## Windows XP
 
 For the staging setup, add to the XP `hosts` file:
@@ -150,7 +167,7 @@ into Trusted Root Certification Authorities.
 For WinHTTP Passport Test, import:
 
 ```text
-passport-test.reg
+tools/passport-test.reg
 ```
 
 That file writes Passport URLs under `Internet Settings\Passport`, which the
@@ -158,7 +175,7 @@ Wizard reads. On a clean system, `RegistrationUrl`, `LoginServerUrl`,
 `Properties`, `Help`, `Privacy`, and `GeneralRedir` point at the staging hosts.
 On a previously used XP box, old Passport URLs may remain cached — restart the
 app or use a clean profile to clear that cache. For other domains, start from
-`passport-test.reg.example` and replace the host values.
+`tools/passport-test.reg.example` and replace the host values.
 
 Historical default domains:
 

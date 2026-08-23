@@ -137,6 +137,22 @@ docker compose ps
 docker compose down
 ```
 
+## GitHub Container Registry
+
+GitHub Actions публикует Docker-образ в GHCR:
+
+- push в `main` публикует `ghcr.io/<owner>/lunapassport:latest`;
+- тег версии вроде `v1.0.0` публикует `ghcr.io/<owner>/lunapassport:v1.0.0`;
+- успешный pull request публикует `ghcr.io/<owner>/lunapassport:pr-<number>`
+  и добавляет команду загрузки в комментарий PR.
+
+PR-пакет пересобирается при изменении PR. Если пакет приватный, для GHCR нужно
+сначала выполнить вход через GitHub Container Registry.
+
+Плановая очистка удаляет образы `pr-<number>` для закрытых PR и для PR, которые
+не обновлялись 30 дней. При закрытии PR очистка запускается сразу; вручную её
+также можно запустить из вкладки Actions.
+
 ## Windows XP
 
 Для staging-конфигурации добавьте в `hosts` XP:
@@ -151,7 +167,7 @@ IP замените на адрес машины с Traefik. Сертифика�
 Для WinHTTP Passport Test можно импортировать:
 
 ```text
-passport-test.reg
+tools/passport-test.reg
 ```
 
 Файл настраивает Passport URL в `Internet Settings\Passport`, которые читает
@@ -159,7 +175,7 @@ Wizard. На чистой системе `RegistrationUrl`, `LoginServerUrl`, `P
 `Help`, `Privacy` и `GeneralRedir` сразу указывают на staging-домены. На уже
 использовавшейся XP старые Passport URL могут оставаться в кэше — перезапуск
 приложения или чистый профиль нужны только для сброса этого кэша. Для других
-доменов используйте `passport-test.reg.example` и замените значения хостов.
+доменов используйте `tools/passport-test.reg.example` и замените значения хостов.
 
 Исторические домены по умолчанию:
 

@@ -20,9 +20,9 @@ The Go service is HTTP-only. Traefik or Nginx terminates TLS in front of it.
 - `docker-compose.yml` — LunaPassport service for an external Traefik instance;
   LunaPassport listens on port 8080 inside the external `traefik` network.
 - `.env.example` — custom Passport and memberservices host configuration.
-- `passport-test.reg` — ready-to-import WinXP WinHTTP Passport Test registry
+- `tools/passport-test.reg` — ready-to-import WinXP WinHTTP Passport Test registry
   configuration for the staging login host.
-- `passport-test.reg.example` — editable registry template for another login
+- `tools/passport-test.reg.example` — editable registry template for another login
   host.
 
 Generated binaries, certificates, keys, databases, packet captures, and logs

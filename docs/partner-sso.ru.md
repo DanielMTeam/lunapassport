@@ -25,8 +25,8 @@ flowchart TD
 ```
 
 - **Чужой домен** (`shop.example.com` vs `passport.lab`) → **только OAuth**.
-- **Общий parent domain** (`app.alexsyw.me` + `passport-staging.alexsyw.me` при
-  cookie domain `.alexsyw.me`) → classic cookies **или** OAuth.
+- **Общий parent domain** (`app.lunastore.app` + `passport-staging.lunastore.app` при
+  cookie domain `.lunastore.app`) → classic cookies **или** OAuth.
 
 ## Регистрация приложения
 
@@ -163,7 +163,7 @@ import (
 )
 
 const (
-	passportBase = "https://passport-staging.alexsyw.me"
+	passportBase = "https://passport-staging.lunastore.app"
 	clientID     = "YOUR_CLIENT_ID"
 	clientSecret = "YOUR_CLIENT_SECRET"
 	redirectURI  = "https://yoursite.example/callback"
@@ -231,7 +231,7 @@ func main() {
 ### Требования
 
 - Хост сайта лежит под тем же parent, что и `PASSPORT_COOKIE_DOMAIN`
-  (пример: `.alexsyw.me`).
+  (пример: `.lunastore.app`).
 - Return URL зарегистрирован на `/partners` с включённым **classic Passport partner**.
 
 Cookies `MSPAuth` / `MSPProf` / `PPAuth` привязаны к parent domain. На чужих
@@ -242,7 +242,7 @@ Cookies `MSPAuth` / `MSPProf` / `PPAuth` привязаны к parent domain. Н
 1. Отправьте пользователя на:
 
 ```text
-GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.alexsyw.me/passport/return
+GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.lunastore.app/passport/return
 ```
 
 2. После входа LunaPassport:
@@ -252,7 +252,7 @@ GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.alexsyw.me/passpor
 Альтернатива при уже существующей browser-сессии:
 
 ```text
-GET https://PASSPORT_HOST/partner/complete?ru=https://app.alexsyw.me/passport/return
+GET https://PASSPORT_HOST/partner/complete?ru=https://app.lunastore.app/passport/return
 ```
 
 ### Проверка сессии

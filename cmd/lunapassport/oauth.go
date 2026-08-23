@@ -47,10 +47,6 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 	if responseType == "" {
 		responseType = "code"
 	}
-	if responseType != "code" {
-		s.writeOAuthAuthorizeError(w, redirectURI, state, "unsupported_response_type", "Only response_type=code is supported")
-		return
-	}
 
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {
@@ -63,6 +59,10 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 	}
 	if !client.allowsRedirectURI(redirectURI) {
 		http.Error(w, "redirect_uri is not registered for this client", http.StatusBadRequest)
+		return
+	}
+	if responseType != "code" {
+		s.writeOAuthAuthorizeError(w, redirectURI, state, "unsupported_response_type", "Only response_type=code is supported")
 		return
 	}
 

@@ -144,6 +144,7 @@ GitHub Actions publishes the image to GHCR:
 - version tags such as `v1.0.0` publish `ghcr.io/<owner>/lunapassport:v1.0.0`;
 - successful pull requests publish `ghcr.io/<owner>/lunapassport:pr-<number>`
   and add the pull command to the PR comments.
+- published images include both `linux/amd64` and `linux/arm64` platforms.
 
 The PR package is rebuilt when the PR changes. The package may require GitHub
 Container Registry authentication if the repository package is private.

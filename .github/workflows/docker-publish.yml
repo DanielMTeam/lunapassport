@@ -37,6 +37,8 @@ jobs:
     name: 📦 Build - production image
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      source-image: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Check out repository
@@ -65,6 +67,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -76,6 +79,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -95,12 +101,10 @@ jobs:
 
       - name: Promote image tags
         env:
-          SOURCE_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:build-${{ github.sha }}
+          SOURCE_IMAGE: ${{ needs.build.outputs.source-image }}
           TARGET_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          docker pull "$SOURCE_IMAGE"
           while IFS= read -r tag; do
             [ -z "$tag" ] && continue
-            docker tag "$SOURCE_IMAGE" "$tag"
-            docker push "$tag"
+            docker buildx imagetools create --tag "$tag" "$SOURCE_IMAGE"
           done <<< "$TARGET_TAGS"

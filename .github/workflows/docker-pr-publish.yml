@@ -56,6 +56,7 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -65,10 +66,10 @@ jobs:
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.workflow_run.pull_requests[0].number }}
         with:
           script: |
             const issue_number = Number(process.env.PR_NUMBER);
+            const image = `ghcr.io/${context.repo.owner.toLowerCase()}/${context.repo.repo.toLowerCase()}:pr-${issue_number}`;
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -80,10 +81,10 @@ jobs:
               '',
               'Use:',
               '```bash',
-              `docker pull ${process.env.IMAGE}`,
+              `docker pull ${image}`,
               '```',
               '',
-              `Image: \`${process.env.IMAGE}\``
+              `Image: \`${image}\``
             ].join('\n');
 
             const { data: comments } = await github.rest.issues.listComments({

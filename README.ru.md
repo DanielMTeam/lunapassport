@@ -145,6 +145,7 @@ GitHub Actions публикует Docker-образ в GHCR:
 - тег версии вроде `v1.0.0` публикует `ghcr.io/<owner>/lunapassport:v1.0.0`;
 - успешный pull request публикует `ghcr.io/<owner>/lunapassport:pr-<number>`
   и добавляет команду загрузки в комментарий PR.
+- опубликованные образы содержат платформы `linux/amd64` и `linux/arm64`.
 
 PR-пакет пересобирается при изменении PR. Если пакет приватный, для GHCR нужно
 сначала выполнить вход через GitHub Container Registry.

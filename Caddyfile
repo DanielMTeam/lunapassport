@@ -1,0 +1,28 @@
+# Local Windows lab TLS options.
+#
+# Caddy (modern browsers only — TLS 1.2+):
+#   caddy run --config .\Caddyfile
+#
+# Windows XP / WinHTTP need TLS 1.0 + RSA ciphers. Use tlspproxy instead:
+#   1. Stop Caddy (it holds :443).
+#   2. powershell -File .\scripts\gen-local-certs.ps1   # RSA cert
+#   3. go run .\cmd\lunapassport -http :8080
+#   4. Elevated shell: go run .\cmd\tlspproxy
+#
+# Trust _data\passport-mock.crt on XP after regenerating.
+
+{
+	auto_https off
+	admin off
+}
+
+login.passport.com,
+nexus.passport.com,
+register.passport.com,
+memberservices.passport.com,
+www.passport.com,
+nexusrdr.passport.com,
+passport.com {
+	tls ./_data/passport-mock.crt ./_data/passport-mock.key
+	reverse_proxy 127.0.0.1:8080
+}

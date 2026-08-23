@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Sign in - LunaPassport</title>
+<link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
+<link rel="stylesheet" type="text/css" href="/static/properties.css">
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+    <div class="rl_l">
+        <h1 class="txtr">LunaPassport</h1>
+        <div class="subtitle txtr">Sign in with .NET Passport</div>
+    </div>
+</div>
+
+<div class="headerline"></div>
+<div class="main">
+    <div class="content properties_content">
+        <div class="properties_card">
+            <div class="properties_intro">
+                <h2>Sign in</h2>
+                <p>Use your LunaPassport account to continue{{if .ClientName}} to <strong>{{.ClientName}}</strong>{{end}}.</p>
+            </div>
+
+            {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
+
+            <form action="/oauth/login" method="post">
+                <input type="hidden" name="client_id" value="{{.ClientID}}">
+                <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+                <input type="hidden" name="state" value="{{.State}}">
+                <input type="hidden" name="return_to" value="{{.ReturnTo}}">
+
+                <fieldset class="properties_fieldset">
+                    <legend>Passport credentials</legend>
+
+                    <div class="form_row">
+                        <label for="email">E-mail address</label>
+                        <input class="text_input" id="email" type="text" name="email" value="{{.Email}}" required="required" autocomplete="username">
+                    </div>
+
+                    <div class="form_row last_form_row">
+                        <label for="password">Password</label>
+                        <input class="text_input" id="password" type="password" name="password" value="" required="required" autocomplete="current-password">
+                    </div>
+                </fieldset>
+
+                <div class="form_actions">
+                    <button class="box_action_button" type="submit">Sign in</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+
+</html>

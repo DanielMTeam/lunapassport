@@ -16,6 +16,8 @@ services:
       - ${MEMBERSERVICES_HOST:-memberservices-staging.alexsyw.me}
       - -passport-cookie-domain
       - ${PASSPORT_COOKIE_DOMAIN:-.alexsyw.me}
+      - -oauth-secret-pepper
+      - ${OAUTH_SECRET_PEPPER:-lunapassport-lab}
     volumes:
       - ./_data:/data
     healthcheck:

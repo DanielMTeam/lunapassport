@@ -1,16 +1,56 @@
 <!DOCTYPE html>
 <html lang="{{.Lang}}">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset={{.Charset}}">
 <title>{{.Copy.PageTitle}}</title>
 <link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
 <link rel="stylesheet" type="text/css" href="/static/wizard.css">
+<script language="VBScript">
+Sub BindPassportNameVB(name)
+  On Error Resume Next
+  window.external.Property("passportname") = name
+  window.external.Property("MemberName") = name
+  window.external.Property("PassportName") = name
+End Sub
+Sub FinishPassportVB(name, ticket)
+  On Error Resume Next
+  window.external.Property("passportname") = name
+  window.external.Property("MemberName") = name
+  window.external.Property("PassportName") = name
+  If ticket <> "" Then
+    window.external.FinalNext ticket
+  End If
+  window.external.FinalNext name
+  window.external.FinalNext
+End Sub
+</script>
 <script language="JavaScript" type="text/javascript">
 function setButtons(back, next, last) {
   try { window.external.SetWizardButtons(back, next, last); } catch (e) {}
 }
 function setHeader(title, subtitle) {
   try { window.external.SetHeaderText(title, subtitle); } catch (e) {}
+}
+function bindPassportName(name) {
+  if (!name) { return; }
+  try { window.external.SetMemberName(name); } catch (e0) {}
+  try { BindPassportNameVB(name); } catch (e1) {}
+}
+function finishPassport() {
+  var name = '{{.Email}}';
+  var ticket = '{{.Ticket}}';
+  bindPassportName(name);
+  try { FinishPassportVB(name, ticket); } catch (e0) {}
+  try {
+    if (ticket) { window.external.FinalNext(ticket); }
+    else { window.external.FinalNext(name); }
+  } catch (e1) {
+    try { window.external.FinalNext(name); } catch (e2) {
+      try { window.external.FinalNext(); } catch (e3) {
+        document.getElementById('status').innerHTML = '{{.Copy.FinishMessage}}';
+      }
+    }
+  }
 }
 function OnBack() {
   if ({{.StepNumber}} == 1) {
@@ -39,13 +79,15 @@ function OnNext() {
   if ({{.StepNumber}} == 2) {
     return;
   }
-  try { window.external.FinalNext(); } catch (e) {
-    document.getElementById('status').innerHTML = '{{.Copy.FinishMessage}}';
-  }
+  finishPassport();
 }
 function window_onload() {
   setHeader('{{.Copy.PageTitle}}', '{{.Copy.BrandSubtitle}}');
   setButtons({{.Back}}, {{if .ErrorText}}0{{else}}1{{end}}, {{.Last}});
+  {{if eq .Step "3"}}
+  bindPassportName('{{.Email}}');
+  setTimeout(finishPassport, 250);
+  {{end}}
 }
 window.onload = window_onload;
 </script>
@@ -66,6 +108,14 @@ window.onload = window_onload;
         {{if .ErrorText}}{{.ErrorText}}{{else}}{{.Copy.NativeMessage}}{{end}}
       </div>
       {{else if eq .Step "3"}}
+      <form id="PassportWizardForm" name="PassportWizardForm" action="#">
+        <input type="hidden" id="MemberName" name="MemberName" value="{{.Email}}">
+        <input type="hidden" id="membername" name="membername" value="{{.Email}}">
+        <input type="hidden" id="email" name="email" value="{{.Email}}">
+        <input type="hidden" id="passportname" name="passportname" value="{{.Email}}">
+        <input type="hidden" id="PassportName" name="PassportName" value="{{.PassportName}}">
+        <input type="hidden" id="t" name="t" value="{{.Ticket}}">
+      </form>
       <div class="good_splash">
         <b>{{.Copy.ReadyTitle}}</b>
         <p><b>{{.PassportName}}</b>: {{.Copy.ReadyMessage}}</p>

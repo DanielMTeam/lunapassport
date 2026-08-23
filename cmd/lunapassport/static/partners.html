@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Partner apps - LunaPassport</title>
+<link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
+<link rel="stylesheet" type="text/css" href="/static/properties.css">
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+    <div class="rl_l">
+        <h1 class="txtr">LunaPassport</h1>
+        <div class="subtitle txtr">Partner applications</div>
+    </div>
+</div>
+
+<div class="headerline"></div>
+<div class="main">
+    <div class="content properties_content">
+        <div class="properties_card">
+            <div class="properties_intro">
+                <h2>Register a site</h2>
+                <p>Signed in as <strong>{{.SignIn}}</strong>. Create an OAuth app for any website, or enable classic Passport cookies for sites on the shared cookie domain.</p>
+            </div>
+
+            {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
+            {{if .CreatedClientID}}
+            <div class="status_message success_message">
+                Application created. Copy the secret now — it is shown only once.<br>
+                <strong>client_id:</strong> {{.CreatedClientID}}<br>
+                <strong>client_secret:</strong> {{.CreatedClientSecret}}
+            </div>
+            {{end}}
+            {{if .RotatedClientID}}
+            <div class="status_message success_message">
+                Secret rotated for <strong>{{.RotatedClientID}}</strong>. Copy it now — it is shown only once.<br>
+                <strong>client_secret:</strong> {{.RotatedClientSecret}}
+            </div>
+            {{end}}
+            {{if .StatusText}}<div class="status_message success_message">{{.StatusText}}</div>{{end}}
+
+            <form action="/partners" method="post">
+                <input type="hidden" name="action" value="create">
+                <fieldset class="properties_fieldset">
+                    <legend>New application</legend>
+
+                    <div class="form_row">
+                        <label for="name">Application name</label>
+                        <input class="text_input" id="name" type="text" name="name" value="{{.FormName}}" required="required">
+                    </div>
+
+                    <div class="form_row">
+                        <label for="redirect_uris">Redirect URIs (one per line)</label>
+                        <textarea class="text_input" id="redirect_uris" name="redirect_uris" rows="4" required="required">{{.FormRedirectURIs}}</textarea>
+                        <div class="field_help">Exact match required. For classic partner cookies, list the return URLs on your shared parent domain.</div>
+                    </div>
+
+                    <div class="form_row last_form_row">
+                        <label for="classic_enabled">
+                            <input id="classic_enabled" type="checkbox" name="classic_enabled" value="1"{{if .FormClassic}} checked="checked"{{end}}>
+                            Enable classic Passport partner return (MSPAuth on shared cookie domain)
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="form_actions">
+                    <button class="box_action_button" type="submit">Create application</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="properties_card">
+            <div class="properties_intro">
+                <h2>Your applications</h2>
+            </div>
+
+            {{if not .Clients}}
+            <p>No applications yet.</p>
+            {{else}}
+            {{range .Clients}}
+            <div class="properties_intro">
+                <h3>{{.Name}}</h3>
+                <p>
+                    <strong>client_id:</strong> {{.ClientID}}<br>
+                    <strong>status:</strong> {{if .Enabled}}enabled{{else}}disabled{{end}}
+                    {{if .ClassicEnabled}} · classic partner{{end}}<br>
+                    <strong>redirect URIs:</strong><br>
+                    {{range .RedirectURIList}}{{.}}<br>{{end}}
+                </p>
+                <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="action" value="rotate">
+                    <input type="hidden" name="client_id" value="{{.ClientID}}">
+                    <button class="box_action_button" type="submit">Rotate secret</button>
+                </form>
+                {{if .Enabled}}
+                <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="action" value="disable">
+                    <input type="hidden" name="client_id" value="{{.ClientID}}">
+                    <button class="box_action_button" type="submit">Disable</button>
+                </form>
+                {{else}}
+                <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="action" value="enable">
+                    <input type="hidden" name="client_id" value="{{.ClientID}}">
+                    <button class="box_action_button" type="submit">Enable</button>
+                </form>
+                {{end}}
+                <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="client_id" value="{{.ClientID}}">
+                    <button class="box_action_button" type="submit">Delete</button>
+                </form>
+            </div>
+            {{end}}
+            {{end}}
+        </div>
+
+        <p><a href="/ppsecure/MSRV_EditProfile.asp">Account settings</a> · <a href="/logout">Sign out</a></p>
+    </div>
+</div>
+
+</div>
+</body>
+
+</html>

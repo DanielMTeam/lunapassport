@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 func TestLunaPassportEndToEnd(t *testing.T) {
@@ -151,12 +153,20 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, err := io.ReadAll(resp.Body)
+	contentType := resp.Header.Get("Content-Type")
 	resp.Body.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	page := string(body)
-	for _, marker := range []string{`<html lang="ru">`, "Войдите в LunaPassport", "Нажмите «Далее»"} {
+	if !strings.Contains(strings.ToLower(contentType), "windows-1251") {
+		t.Fatalf("Russian Wizard pages must use windows-1251 for XP IE: Content-Type=%q", contentType)
+	}
+	decoded, err := charmap.Windows1251.NewDecoder().Bytes(body)
+	if err != nil {
+		t.Fatalf("decode windows-1251 wizard page: %v", err)
+	}
+	page := string(decoded)
+	for _, marker := range []string{`<html lang="ru">`, "charset=windows-1251", "Войдите в LunaPassport", "Нажмите «Далее»", "FinalNext", `Property("passportname")`} {
 		if !strings.Contains(page, marker) {
 			t.Fatalf("Wizard response missing %q", marker)
 		}
@@ -275,8 +285,12 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatalf("Passport success must return a persistent PPAuth cookie: cookies=%v", resp.Cookies())
 	}
 	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Authentication-Info"), "da-status=success") {
-		t.Fatalf("Passport success: status=%d auth-info=%q", resp.StatusCode, resp.Header.Get("Authentication-Info"))
+	authInfo := resp.Header.Get("Authentication-Info")
+	if resp.StatusCode != http.StatusOK || !strings.Contains(authInfo, "da-status=success") {
+		t.Fatalf("Passport success: status=%d auth-info=%q", resp.StatusCode, authInfo)
+	}
+	if !strings.Contains(authInfo, "MemberName=test%40example.com") && !strings.Contains(authInfo, "MemberName=test@example.com") {
+		t.Fatalf("Passport success must include MemberName for XP CredMan: %q", authInfo)
 	}
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/login2.srf", nil)
 	if err != nil {
@@ -291,7 +305,20 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Authentication-Info"), "da-status=success") {
 		t.Fatalf("Passport must reuse a persistent PPAuth token without credentials: status=%d auth-info=%q", resp.StatusCode, resp.Header.Get("Authentication-Info"))
 	}
-	authInfo := resp.Header.Get("Authentication-Info")
+	authInfo = resp.Header.Get("Authentication-Info")
+	request, err = http.NewRequest(http.MethodGet, baseURL+"/passport-signin.asp", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.AddCookie(ppAuthCookie)
+	resp, err = redirectClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusFound || resp.Header.Get("Location") != "https://login.passport.com/login2.asp" {
+		t.Fatalf("Wizard passport-signin must not cookie-short-circuit: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
+	}
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/ppsecure/MSRV_EditProfile.asp", nil)
 	if err != nil {
 		t.Fatal(err)

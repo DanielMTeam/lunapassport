@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 type wizardPageData struct {
 	Lang            string
+	Charset         string
 	Copy            wizardCopy
 	Step            string
 	StepNumber      int
@@ -17,6 +20,7 @@ type wizardPageData struct {
 	Last            int
 	Email           string
 	PassportName    string
+	Ticket          string
 	ErrorText       string
 	FallbackVisible bool
 }
@@ -56,10 +60,26 @@ func (s *server) handleWizard(w http.ResponseWriter, r *http.Request) {
 	}
 	email := wizardValue(r, "email", s.username)
 	language := wizardLanguage(r)
-	if step == "3" && !s.hasValidPassportAuth(r) {
-		location := "/defaultwiz.asp?step=1&passportrequired=1&email=" + url.QueryEscape(email)
-		http.Redirect(w, r, location, http.StatusFound)
-		return
+	ticket := ""
+	if step == "3" {
+		token := passportTokenFromRequest(r)
+		if token == "" {
+			token = tokenFromRequest(r)
+		}
+		if user, ok := s.tokenUser(token); ok {
+			if email == "" || email == s.username {
+				email = user
+			}
+			profile := s.profileBlobForToken(token, email)
+			ticket = "t=" + token + "&p=" + url.QueryEscape(profile)
+			w.Header().Set("Authentication-Info", "Passport1.4 da-status=success,tname=MSPAuth,tname=MSPProf,MemberName="+url.QueryEscape(email)+",from-PP='"+ticket+"'")
+			s.setPartnerTokenCookies(w, r, token)
+		}
+		if !s.hasValidPassportAuth(r) && ticket == "" {
+			location := "/defaultwiz.asp?step=1&passportrequired=1&email=" + url.QueryEscape(email)
+			http.Redirect(w, r, location, http.StatusFound)
+			return
+		}
 	}
 	passportName := s.passportName(email)
 	errorText := ""
@@ -77,7 +97,7 @@ func (s *server) handleWizard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !valid {
-			s.writeWizard(w, step, email, copyForLanguage(language).InvalidCredentials, language, passportName)
+			s.writeWizard(w, step, email, copyForLanguage(language).InvalidCredentials, language, passportName, "")
 			return
 		}
 		passportName = account.PassportName
@@ -87,16 +107,19 @@ func (s *server) handleWizard(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create wizard token", http.StatusInternalServerError)
 			return
 		}
-		s.mu.Lock()
-		s.tokens[token] = email
-		s.mu.Unlock()
+		if err := s.rememberToken(token, email); err != nil {
+			http.Error(w, "cannot store wizard token", http.StatusInternalServerError)
+			return
+		}
+		s.setPPAuthCookie(w, r, token)
+		s.setPartnerTokenCookies(w, r, token)
 		http.SetCookie(w, &http.Cookie{Name: "PassportWizardAuth", Value: token, Path: "/", HttpOnly: true})
 		location := "/defaultwiz.asp?step=3&email=" + url.QueryEscape(email) + "&fallback=1"
 		http.Redirect(w, r, location, http.StatusFound)
 		return
 	}
 
-	s.writeWizard(w, step, email, errorText, language, passportName)
+	s.writeWizard(w, step, email, errorText, language, passportName, ticket)
 }
 
 func wizardLanguage(r *http.Request) string {
@@ -125,25 +148,39 @@ func wizardValue(r *http.Request, key, fallback string) string {
 	return fallback
 }
 
-func writeWizard(w http.ResponseWriter, step, email, errorText, language, passportName string) {
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, wizardHTMLForLanguage(step, email, errorText, language, passportName))
+func writeWizard(w http.ResponseWriter, step, email, errorText, language, passportName, ticket string) {
+	writeWizardBody(w, wizardHTMLForLanguage(step, email, errorText, language, passportName, ticket), language)
 }
 
-func (s *server) writeWizard(w http.ResponseWriter, step, email, errorText, language, passportName string) {
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	body := wizardHTMLForLanguage(step, email, errorText, language, passportName)
+func (s *server) writeWizard(w http.ResponseWriter, step, email, errorText, language, passportName, ticket string) {
+	body := wizardHTMLForLanguage(step, email, errorText, language, passportName, ticket)
 	body = strings.ReplaceAll(body, "__PASSPORT_LOGIN_URL__", s.loginURL(""))
-	fmt.Fprint(w, body)
+	writeWizardBody(w, body, language)
+}
+
+func writeWizardBody(w http.ResponseWriter, body, language string) {
+	w.Header().Set("Cache-Control", "no-cache")
+	payload := []byte(body)
+	contentType := "text/html; charset=utf-8"
+	// Russian XP hosts the Wizard in a legacy WebBrowser control that often
+	// interprets pages as the system ANSI code page (windows-1251). UTF-8
+	// Cyrillic then corrupts the inline JavaScript and FinalNext never runs.
+	if language == "ru" {
+		if encoded, err := charmap.Windows1251.NewEncoder().Bytes(payload); err == nil {
+			payload = encoded
+			contentType = "text/html; charset=windows-1251"
+		}
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(payload)))
+	_, _ = w.Write(payload)
 }
 
 func wizardHTML(step, email, errorText string) string {
-	return wizardHTMLForLanguage(step, email, errorText, "en", email)
+	return wizardHTMLForLanguage(step, email, errorText, "en", email, "")
 }
 
-func wizardHTMLForLanguage(step, email, errorText, language string, passportNames ...string) string {
+func wizardHTMLForLanguage(step, email, errorText, language string, extras ...string) string {
 	stepNumber := 1
 	if step == "2" {
 		stepNumber = 2
@@ -151,11 +188,20 @@ func wizardHTMLForLanguage(step, email, errorText, language string, passportName
 		stepNumber = 3
 	}
 	passportName := email
-	if len(passportNames) > 0 && passportNames[0] != "" {
-		passportName = passportNames[0]
+	ticket := ""
+	if len(extras) > 0 && extras[0] != "" {
+		passportName = extras[0]
+	}
+	if len(extras) > 1 {
+		ticket = extras[1]
+	}
+	charset := "utf-8"
+	if language == "ru" {
+		charset = "windows-1251"
 	}
 	data := wizardPageData{
 		Lang:            language,
+		Charset:         charset,
 		Copy:            copyForLanguage(language),
 		Step:            step,
 		StepNumber:      stepNumber,
@@ -163,6 +209,7 @@ func wizardHTMLForLanguage(step, email, errorText, language string, passportName
 		Last:            wizardLast(step),
 		Email:           email,
 		PassportName:    passportName,
+		Ticket:          ticket,
 		ErrorText:       errorText,
 		FallbackVisible: errorText != "",
 	}

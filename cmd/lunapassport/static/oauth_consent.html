@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Allow access - LunaPassport</title>
+<link rel="stylesheet" type="text/css" href="/static/css/main_api.css">
+<link rel="stylesheet" type="text/css" href="/static/properties.css">
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+    <div class="rl_l">
+        <h1 class="txtr">LunaPassport</h1>
+        <div class="subtitle txtr">Authorize application</div>
+    </div>
+</div>
+
+<div class="headerline"></div>
+<div class="main">
+    <div class="content properties_content">
+        <div class="properties_card">
+            <div class="properties_intro">
+                <h2>Allow {{.ClientName}}?</h2>
+                <p>Signed in as <strong>{{.SignIn}}</strong>. This application will receive your Passport e-mail and display name.</p>
+            </div>
+
+            {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
+
+            <form action="/oauth/authorize/consent" method="post">
+                <input type="hidden" name="client_id" value="{{.ClientID}}">
+                <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+                <input type="hidden" name="state" value="{{.State}}">
+
+                <div class="form_actions">
+                    <button class="box_action_button" type="submit" name="decision" value="allow">Allow</button>
+                    <button class="box_action_button" type="submit" name="decision" value="deny">Deny</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+
+</html>

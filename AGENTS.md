@@ -117,6 +117,11 @@ there is no password-recovery flow yet.
 
 ## Reference Documentation
 
+Partner website integration (OAuth and classic Passport partner):
+
+- [docs/partner-sso.md](docs/partner-sso.md) (English)
+- [docs/partner-sso.ru.md](docs/partner-sso.ru.md) (Русский)
+
 The protocol and Windows integration are based on these Microsoft references:
 
 - [Passport Authentication in WinHTTP](https://learn.microsoft.com/en-us/windows/win32/winhttp/passport-authentication-in-winhttp) — Nexus configuration, login flow, and XP credential storage.

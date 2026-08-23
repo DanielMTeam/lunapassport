@@ -52,10 +52,19 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	auth := parsePassportAuthorization(r.Header.Get("Authorization"))
 	user, password := auth["sign-in"], auth["pwd"]
+	browserMode := r.URL.Query().Get("browser") == "1"
+	queryReturn := strings.TrimSpace(r.URL.Query().Get("ru"))
+	if queryReturn == "" {
+		queryReturn = strings.TrimSpace(r.URL.Query().Get("OrgUrl"))
+	}
 
 	if user == "" && password == "" {
 		if token := passportTokenFromRequest(r); token != "" {
 			if _, ok := s.tokenUser(token); ok {
+				if browserMode {
+					s.writeBrowserPassportSuccess(w, r, token, auth, queryReturn)
+					return
+				}
 				s.writePassportTokenResponse(w, r, token, auth)
 				return
 			}
@@ -85,11 +94,22 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if browserMode {
+		s.writeBrowserPassportSuccess(w, r, token, auth, queryReturn)
+		return
+	}
 	s.writePassportTokenResponse(w, r, token, auth)
 }
 
 func (s *server) writePassportTokenResponse(w http.ResponseWriter, r *http.Request, token string, auth map[string]string) {
-	fromPP := "t=" + token + "&p=mock-profile"
+	memberName := auth["sign-in"]
+	if memberName == "" {
+		if user, ok := s.tokenUser(token); ok {
+			memberName = user
+		}
+	}
+	profile := s.profileBlobForToken(token, memberName)
+	fromPP := "t=" + token + "&p=" + url.QueryEscape(profile)
 	returnURL := auth["OrgUrl"]
 	if returnURL == "" {
 		returnURL = auth["OrgURL"]
@@ -97,7 +117,10 @@ func (s *server) writePassportTokenResponse(w http.ResponseWriter, r *http.Reque
 	if returnURL == "" {
 		returnURL = s.loginURL("/passport-signin.asp")
 	}
-	authInfo := "Passport1.4 da-status=success,tname=PPAuth,from-PP='" + fromPP + "',ru=" + returnURL
+	// Keep the MS-PASS login Token Response shape (tname=PPAuth + from-PP + ru).
+	// MemberName is an XP CredMan extension; do not advertise MSP* tnames here —
+	// those belong on the partner Set Token response after ru returns.
+	authInfo := "Passport1.4 da-status=success,tname=PPAuth,MemberName=" + url.QueryEscape(memberName) + ",from-PP='" + fromPP + "',ru=" + returnURL
 	cookieDomain := s.passportCookieDomain(r)
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Content-Type", "text/html")
@@ -106,6 +129,23 @@ func (s *server) writePassportTokenResponse(w http.ResponseWriter, r *http.Reque
 	http.SetCookie(w, &http.Cookie{Name: "PPAuth", Value: token, Domain: cookieDomain, Path: "/", Expires: time.Now().Add(passportTokenLifetime), MaxAge: int(passportTokenLifetime / time.Second), Secure: true, HttpOnly: true})
 	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *server) writeBrowserPassportSuccess(w http.ResponseWriter, r *http.Request, token string, auth map[string]string, queryReturn string) {
+	returnURL := queryReturn
+	if returnURL == "" {
+		returnURL = auth["OrgUrl"]
+	}
+	if returnURL == "" {
+		returnURL = auth["OrgURL"]
+	}
+	s.setPPAuthCookie(w, r, token)
+	if returnURL != "" && s.accounts.isAllowlistedReturnURL(returnURL) {
+		s.setPartnerTokenCookies(w, r, token)
+		http.Redirect(w, r, returnURL, http.StatusFound)
+		return
+	}
+	s.writePassportTokenResponse(w, r, token, auth)
 }
 
 func (s *server) passportCookieDomain(r *http.Request) string {
@@ -165,15 +205,17 @@ func (s *server) handlePassportSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if token := passportTokenFromRequest(r); token != "" {
+	// Wizard PassportAuthenticate must reach login2.asp Token Response so
+	// WinHTTP/netplwiz learn MemberName for the local-account association.
+	// Cookie-only success here returns true without that login Token Response:
+	// CredMan may already have a password, but User Accounts keeps
+	// "Use a .NET Passport" and Finish shows <passportname>.
+	// Accept only an Authorization from-PP ticket issued by login2.
+	if token := tokenFromAuthorizationHeader(r.Header.Get("Authorization")); token != "" {
 		if _, ok := s.tokenUser(token); ok {
 			s.handlePartnerToken(w, r, token)
 			return
 		}
-	}
-	if s.hasValidPassportAuth(r) {
-		s.handlePartner(w, r)
-		return
 	}
 
 	w.Header().Set("Location", s.loginURL("/login2.asp"))
@@ -182,6 +224,19 @@ func (s *server) handlePassportSignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "close")
 	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusFound)
+}
+
+func tokenFromAuthorizationHeader(value string) string {
+	auth := parsePassportAuthorization(value)
+	fromPP := auth["from-PP"]
+	if strings.HasPrefix(fromPP, "t=") {
+		fromPP = strings.TrimPrefix(fromPP, "t=")
+		if i := strings.IndexByte(fromPP, '&'); i >= 0 {
+			fromPP = fromPP[:i]
+		}
+		return fromPP
+	}
+	return ""
 }
 
 func (s *server) requirePassportAuth(next http.Handler) http.Handler {
@@ -261,6 +316,67 @@ func (s *server) handlePartner(w http.ResponseWriter, r *http.Request) {
 	s.handlePartnerToken(w, r, token)
 }
 
+func (s *server) handlePartnerVerify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	token := tokenFromRequest(r)
+	if token == "" {
+		token = passportTokenFromRequest(r)
+	}
+	user, ok := s.tokenUser(token)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"authenticated":false}`+"\n")
+		return
+	}
+	account, found, err := s.accounts.find(user)
+	if err != nil {
+		http.Error(w, "account store failure", http.StatusInternalServerError)
+		return
+	}
+	name := user
+	if found {
+		name = account.PassportName
+	}
+	fmt.Fprintf(w, `{"authenticated":true,"sign_in":%q,"passport_name":%q}`+"\n", user, name)
+}
+
+func (s *server) handlePartnerComplete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	returnURL := strings.TrimSpace(r.URL.Query().Get("ru"))
+	if returnURL == "" {
+		http.Error(w, "ru query parameter is required", http.StatusBadRequest)
+		return
+	}
+	if !s.accounts.isAllowlistedReturnURL(returnURL) {
+		http.Error(w, "return URL is not allowlisted for classic partner apps", http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := s.browserPassportUser(r); !ok {
+		login := "/oauth/login?return_to=" + url.QueryEscape("/partner/complete?ru="+url.QueryEscape(returnURL))
+		http.Redirect(w, r, login, http.StatusFound)
+		return
+	}
+
+	token := passportTokenFromRequest(r)
+	if token == "" {
+		token = tokenFromRequest(r)
+	}
+	s.setPartnerTokenCookies(w, r, token)
+	http.Redirect(w, r, returnURL, http.StatusFound)
+}
+
 func (s *server) handlePartnerToken(w http.ResponseWriter, r *http.Request, token string) {
 	user, ok := s.tokenUser(token)
 	if !ok {
@@ -270,7 +386,9 @@ func (s *server) handlePartnerToken(w http.ResponseWriter, r *http.Request, toke
 		return
 	}
 
-	w.Header().Set("Authentication-Info", "Passport1.4 tname=MSPAuth,tname=MSPProf")
+	profile := s.profileBlobForToken(token, user)
+	fromPP := "t=" + token + "&p=" + url.QueryEscape(profile)
+	w.Header().Set("Authentication-Info", "Passport1.4 da-status=success,tname=MSPAuth,tname=MSPProf,MemberName="+url.QueryEscape(user)+",from-PP='"+fromPP+"'")
 	s.setPartnerTokenCookies(w, r, token)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	fmt.Fprintf(w, "authenticated user=%s\n", user)
@@ -278,8 +396,26 @@ func (s *server) handlePartnerToken(w http.ResponseWriter, r *http.Request, toke
 
 func (s *server) setPartnerTokenCookies(w http.ResponseWriter, r *http.Request, token string) {
 	cookieDomain := s.passportCookieDomain(r)
+	user, _ := s.tokenUser(token)
+	profile := s.profileBlobForToken(token, user)
 	http.SetCookie(w, &http.Cookie{Name: "MSPAuth", Value: token, Domain: cookieDomain, Path: "/", Secure: true, HttpOnly: true})
-	http.SetCookie(w, &http.Cookie{Name: "MSPProf", Value: "mock-profile", Domain: cookieDomain, Path: "/", Secure: true})
+	http.SetCookie(w, &http.Cookie{Name: "MSPProf", Value: profile, Domain: cookieDomain, Path: "/", Secure: true})
+}
+
+func (s *server) profileBlobForToken(token, memberName string) string {
+	if memberName == "" {
+		if user, ok := s.tokenUser(token); ok {
+			memberName = user
+		}
+	}
+	if memberName == "" {
+		return "mock-profile"
+	}
+	account, found, err := s.accounts.find(memberName)
+	if err == nil && found && account.PassportName != "" {
+		return "MemberName=" + memberName + "&Nickname=" + account.PassportName
+	}
+	return "MemberName=" + memberName
 }
 
 func writePassportChallenge(w http.ResponseWriter, details string) {

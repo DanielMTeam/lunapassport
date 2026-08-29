@@ -290,7 +290,10 @@ func (s *server) handleProperties(w http.ResponseWriter, r *http.Request) {
 			s.renderProperties(w, account, err.Error(), false)
 			return
 		}
-		s.rebindToken(tokenFromRequest(r), updated.SignIn)
+		if err := s.rebindToken(tokenFromRequest(r), updated.PassportName); err != nil {
+			http.Error(w, "cannot refresh Passport session", http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(w, r, "/ppsecure/MSRV_EditProfile.asp?saved=1", http.StatusFound)
 		return
 	}

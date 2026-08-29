@@ -300,7 +300,7 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	request.AddCookie(ppAuthCookie)
-	resp, err = client.Do(request)
+	resp, err = redirectClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,13 +436,15 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 	}
 
 	passportAuthorization = "Passport1.4 sign-in=updated%40example.com,pwd=updatedpass"
+	updatedClient := *client
+	updatedClient.Jar = nil
 
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/ppsecure/MSRV_EditProfile.asp?saved=1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	request.Header.Set("Authorization", passportAuthorization)
-	resp, err = client.Do(request)
+	resp, err = updatedClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}

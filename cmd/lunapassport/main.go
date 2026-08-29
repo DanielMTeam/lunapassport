@@ -22,15 +22,19 @@ func main() {
 	memberservicesHost := flag.String("memberservices-host", os.Getenv("MEMBERSERVICES_HOST"), "Passport memberservices host")
 	oauthPepper := flag.String("oauth-secret-pepper", os.Getenv("OAUTH_SECRET_PEPPER"), "Pepper used to hash OAuth client secrets")
 	encryptionKey := flag.String("account-encryption-key", os.Getenv("ACCOUNT_ENCRYPTION_KEY"), "Base64 32-byte key for encrypted account fields")
+	seedEmail := flag.String("seed-account-email", "", "Test-only initial account email")
+	seedPassword := flag.String("seed-account-password", "", "Test-only initial account password")
+	seedPassportName := flag.String("seed-account-passport-name", "", "Test-only initial Passport name")
 	cookieDomain := flag.String("passport-cookie-domain", os.Getenv("PASSPORT_COOKIE_DOMAIN"), "Shared Passport cookie domain, for example .lunastore.app")
 	flag.Parse()
 
+	initial := passportAccount{SignIn: *seedEmail, Password: *seedPassword, PassportName: *seedPassportName}
 	var accounts *accountStore
 	var err error
 	if strings.TrimSpace(*encryptionKey) == "" {
-		accounts, err = openAccountStoreWithPepper(*dbPath, passportAccount{}, *oauthPepper)
+		accounts, err = openAccountStoreWithPepper(*dbPath, initial, *oauthPepper)
 	} else {
-		accounts, err = openAccountStoreWithEncryption(*dbPath, passportAccount{}, *oauthPepper, *encryptionKey)
+		accounts, err = openAccountStoreWithEncryption(*dbPath, initial, *oauthPepper, *encryptionKey)
 	}
 	if err != nil {
 		log.Fatal(err)

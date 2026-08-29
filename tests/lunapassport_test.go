@@ -34,6 +34,9 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 	cmd := exec.Command(binary,
 		"-http", "127.0.0.1:"+httpPort,
 		"-db", filepath.Join(workDir, "accounts.db"),
+		"-seed-account-email", "test@example.com",
+		"-seed-account-password", "testpass",
+		"-seed-account-passport-name", "Test Passport",
 	)
 	cmd.Dir = root
 	logFile, err := os.Create(filepath.Join(workDir, "server.log"))

@@ -36,6 +36,9 @@ func startTestServer(t *testing.T) testServerProcess {
 	cmd := exec.Command(binary,
 		"-http", "127.0.0.1:"+httpPort,
 		"-db", filepath.Join(workDir, "accounts.db"),
+		"-seed-account-email", "test@example.com",
+		"-seed-account-password", "testpass",
+		"-seed-account-passport-name", "Test Passport",
 		"-oauth-secret-pepper", "test-pepper",
 	)
 	cmd.Dir = root

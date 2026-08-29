@@ -31,6 +31,9 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	cmd := exec.Command(binary,
 		"-http", "127.0.0.1:"+httpPort,
 		"-db", filepath.Join(workDir, "accounts.db"),
+		"-seed-account-email", "test@example.com",
+		"-seed-account-password", "testpass",
+		"-seed-account-passport-name", "Test Passport",
 		"-oauth-secret-pepper", "test-pepper",
 	)
 	cmd.Dir = root
@@ -56,8 +59,8 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	redirectClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
 
 	loginForm := url.Values{
-		"email":    {"test@example.com"},
-		"password": {"testpass"},
+		"email":     {"test@example.com"},
+		"password":  {"testpass"},
 		"return_to": {"/partners"},
 	}
 	request, err := http.NewRequest(http.MethodPost, baseURL+"/oauth/login", strings.NewReader(loginForm.Encode()))

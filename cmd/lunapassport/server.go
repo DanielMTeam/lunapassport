@@ -116,6 +116,7 @@ func (s *server) routes() http.Handler {
 	mux.HandleFunc("/partner", s.handlePartner)
 	mux.HandleFunc("/oauth/authorize", s.handleOAuthAuthorize)
 	mux.HandleFunc("/oauth/login", s.handleOAuthLogin)
+	mux.HandleFunc("/oauth/register", s.handleOAuthRegister)
 	mux.HandleFunc("/oauth/authorize/consent", s.handleOAuthConsent)
 	mux.HandleFunc("/oauth/token", s.handleOAuthToken)
 	mux.HandleFunc("/oauth/userinfo", s.handleOAuthUserInfo)

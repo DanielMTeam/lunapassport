@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -89,6 +90,7 @@ func (oauthAccessToken) TableName() string {
 type accountStore struct {
 	db     *gorm.DB
 	pepper string
+	cipher *accountCipher
 }
 
 func openAccountStore(path string, initial passportAccount) (*accountStore, error) {
@@ -96,6 +98,10 @@ func openAccountStore(path string, initial passportAccount) (*accountStore, erro
 }
 
 func openAccountStoreWithPepper(path string, initial passportAccount, pepper string) (*accountStore, error) {
+	return openAccountStoreWithCipher(path, initial, pepper, testAccountCipher(pepper))
+}
+
+func openAccountStoreWithCipher(path string, initial passportAccount, pepper string, cipher *accountCipher) (*accountStore, error) {
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -106,8 +112,15 @@ func openAccountStoreWithPepper(path string, initial passportAccount, pepper str
 	if strings.TrimSpace(pepper) == "" {
 		pepper = "lunapassport-lab"
 	}
-	store := &accountStore{db: db, pepper: pepper}
+	if cipher == nil {
+		return nil, fmt.Errorf("account encryption key is required")
+	}
+	store := &accountStore{db: db, pepper: pepper, cipher: cipher}
 	if err := store.migrate(); err != nil {
+		_ = store.close()
+		return nil, err
+	}
+	if err := store.migrateAccountProtection(); err != nil {
 		_ = store.close()
 		return nil, err
 	}
@@ -127,6 +140,23 @@ func (s *accountStore) migrate() error {
 		&oauthAccessToken{},
 	); err != nil {
 		return fmt.Errorf("migrate Passport database: %w", err)
+	}
+	return nil
+}
+
+func (s *accountStore) migrateAccountProtection() error {
+	var accounts []passportAccount
+	if err := s.db.Find(&accounts).Error; err != nil {
+		return err
+	}
+	for i := range accounts {
+		a := accounts[i]
+		if err := s.protectAccount(&a); err != nil {
+			return err
+		}
+		if err := s.db.Model(&passportAccount{}).Where("sign_in = ?", a.SignIn).Updates(map[string]interface{}{"password": a.Password, "secret_question": a.SecretQuestion, "secret_answer": a.SecretAnswer}).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -188,10 +218,37 @@ func (s *accountStore) seedIfEmpty(initial passportAccount) error {
 	}
 
 	initial.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	if err := s.protectAccount(&initial); err != nil {
+		return err
+	}
 	if err := s.db.Create(&initial).Error; err != nil {
 		return fmt.Errorf("insert initial Passport account: %w", err)
 	}
 	return nil
+}
+
+func (s *accountStore) createAccount(account passportAccount) error {
+	account.SignIn = strings.TrimSpace(account.SignIn)
+	account.PassportName = strings.TrimSpace(account.PassportName)
+	if !strings.Contains(account.SignIn, "@") || account.PassportName == "" {
+		return fmt.Errorf("valid e-mail and Passport name are required")
+	}
+	if len(account.Password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
+	if account.SecretQuestion == "" || account.SecretAnswer == "" {
+		return fmt.Errorf("secret question and answer are required")
+	}
+	if _, found, err := s.find(account.SignIn); err != nil {
+		return err
+	} else if found {
+		return fmt.Errorf("account already exists")
+	}
+	account.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	if err := s.protectAccount(&account); err != nil {
+		return err
+	}
+	return s.db.Create(&account).Error
 }
 
 func (s *accountStore) authenticate(signIn, password string) (passportAccount, bool, error) {
@@ -199,7 +256,10 @@ func (s *accountStore) authenticate(signIn, password string) (passportAccount, b
 	if err != nil || !found {
 		return passportAccount{}, false, err
 	}
-	return account, account.Password == password, nil
+	if account.Password == "" {
+		return account, false, nil
+	}
+	return account, bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password)) == nil, nil
 }
 
 func (s *accountStore) find(signIn string) (passportAccount, bool, error) {
@@ -210,6 +270,9 @@ func (s *accountStore) find(signIn string) (passportAccount, bool, error) {
 	}
 	if err != nil {
 		return passportAccount{}, false, fmt.Errorf("find Passport account: %w", err)
+	}
+	if err := s.revealAccount(&account); err != nil {
+		return passportAccount{}, false, err
 	}
 	return account, true, nil
 }
@@ -223,6 +286,9 @@ func (s *accountStore) findByPassportName(name string) (passportAccount, bool, e
 	if err != nil {
 		return passportAccount{}, false, fmt.Errorf("find Passport account by name: %w", err)
 	}
+	if err := s.revealAccount(&account); err != nil {
+		return passportAccount{}, false, err
+	}
 	return account, true, nil
 }
 
@@ -231,6 +297,9 @@ func (s *accountStore) updateAccount(previousSignIn string, account passportAcco
 	account.PassportName = strings.TrimSpace(account.PassportName)
 	if account.SignIn == "" || account.PassportName == "" {
 		return fmt.Errorf("email and Passport name are required")
+	}
+	if err := s.protectAccount(&account); err != nil {
+		return err
 	}
 
 	return s.db.Transaction(func(tx *gorm.DB) error {

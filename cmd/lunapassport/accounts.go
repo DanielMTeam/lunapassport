@@ -324,7 +324,7 @@ func (s *accountStore) updateAccount(previousSignIn string, account passportAcco
 
 		if err := tx.Model(&passportToken{}).
 			Where("passport_name = ? OR passport_name = ?", previousSignIn, previous.PassportName).
-			Update("passport_name", account.SignIn).Error; err != nil {
+			Update("passport_name", account.PassportName).Error; err != nil {
 			return fmt.Errorf("update Passport sessions: %w", err)
 		}
 		return nil

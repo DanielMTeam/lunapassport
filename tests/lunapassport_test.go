@@ -435,6 +435,8 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatalf("update Passport account: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
 	}
 
+	passportAuthorization = "Passport1.4 sign-in=updated%40example.com,pwd=updatedpass"
+
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/ppsecure/MSRV_EditProfile.asp?saved=1", nil)
 	if err != nil {
 		t.Fatal(err)

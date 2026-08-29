@@ -1,27 +1,31 @@
 package main
 
 import (
+	"io/fs"
 	"net/http"
 	"strings"
 )
 
-const legacyCompatibilityNotice = `<!doctype html>
-<html><head><meta charset="utf-8"><title>Legacy browser required</title></head>
-<body><h1>Legacy browser required</h1>
-<p>This LunaPassport test site works only with Internet Explorer 6 and the Windows XP .NET Passport service.</p>
-<p>Please open it from the supported legacy environment.</p></body></html>`
-
 func legacyBrowserOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isLunaPassportPage(r.URL.Path) && isBrowser(r.UserAgent()) && !isLegacyInternetExplorer(r.UserAgent()) {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-store")
-			w.WriteHeader(http.StatusForbidden)
-			_, _ = w.Write([]byte(legacyCompatibilityNotice))
+			writeLegacyCompatibilityNotice(w)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func writeLegacyCompatibilityNotice(w http.ResponseWriter) {
+	page, err := fs.ReadFile(staticFiles, "static/legacy-browser.html")
+	if err != nil {
+		http.Error(w, "cannot read legacy browser notice", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write(page)
 }
 
 func isLegacyInternetExplorer(userAgent string) bool {
@@ -34,7 +38,7 @@ func isBrowser(userAgent string) bool {
 
 func isLunaPassportPage(path string) bool {
 	switch path {
-	case "/", "/netpass/", "/static/netpass/index.html", "/defaultwiz.asp", "/uixpwiz.srf", "/UIXPWiz.srf", "/ppsecure/MSRV_EditProfile.asp", "/partner", "/partners":
+	case "/", "/netpass/", "/static/netpass/index.html", "/defaultwiz.asp", "/uixpwiz.srf", "/UIXPWiz.srf", "/ppsecure/MSRV_EditProfile.asp":
 		return true
 	default:
 		return false

@@ -18,8 +18,27 @@ func TestModernBrowserGetsLegacyCompatibilityNotice(t *testing.T) {
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("modern browser status = %d, want %d", response.Code, http.StatusForbidden)
 	}
-	if !strings.Contains(response.Body.String(), "Internet Explorer 6") || !strings.Contains(response.Body.String(), ".NET Passport") {
-		t.Fatalf("modern browser must receive the legacy compatibility notice: %q", response.Body.String())
+	page := response.Body.String()
+	for _, required := range []string{"Internet Explorer", ".NET Passport", "https://lunastore.app", "/static/img/iewarn.png"} {
+		if !strings.Contains(page, required) {
+			t.Fatalf("modern browser notice must include %q: %q", required, page)
+		}
+	}
+}
+
+func TestModernBrowserCanOpenPartners(t *testing.T) {
+	handler := newServer("test@example.com", "testpass").routes()
+	request := httptest.NewRequest(http.MethodGet, "/partners", nil)
+	request.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code == http.StatusForbidden {
+		t.Fatal("modern browser must not be blocked from partner SSO")
+	}
+	if response.Code != http.StatusFound || !strings.HasPrefix(response.Header().Get("Location"), "/oauth/login?return_to=%2Fpartners") {
+		t.Fatalf("partners response = %d location=%q, want OAuth login redirect", response.Code, response.Header().Get("Location"))
 	}
 }
 

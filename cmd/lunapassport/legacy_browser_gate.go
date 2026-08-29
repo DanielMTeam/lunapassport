@@ -13,7 +13,7 @@ const legacyCompatibilityNotice = `<!doctype html>
 
 func legacyBrowserOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isLunaPassportPage(r.URL.Path) && isModernBrowser(r.UserAgent()) {
+		if isLunaPassportPage(r.URL.Path) && isBrowser(r.UserAgent()) && !isLegacyInternetExplorer(r.UserAgent()) {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusForbidden)
@@ -28,16 +28,8 @@ func isLegacyInternetExplorer(userAgent string) bool {
 	return strings.Contains(userAgent, "MSIE ") || strings.Contains(userAgent, "Trident/")
 }
 
-func isModernBrowser(userAgent string) bool {
-	if isLegacyInternetExplorer(userAgent) {
-		return false
-	}
-	for _, marker := range []string{"Chrome/", "Chromium/", "Firefox/", "Safari/", "Edg/", "OPR/", "Opera/"} {
-		if strings.Contains(userAgent, marker) {
-			return true
-		}
-	}
-	return false
+func isBrowser(userAgent string) bool {
+	return strings.Contains(userAgent, "Mozilla/")
 }
 
 func isLunaPassportPage(path string) bool {

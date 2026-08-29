@@ -23,6 +23,19 @@ func TestModernBrowserGetsLegacyCompatibilityNotice(t *testing.T) {
 	}
 }
 
+func TestNonIEBrowserGetsLegacyCompatibilityNotice(t *testing.T) {
+	handler := newServer("test@example.com", "testpass").routes()
+	request := httptest.NewRequest(http.MethodGet, "/static/netpass/index.html", nil)
+	request.Header.Set("User-Agent", "Mozilla/5.0 (compatible; ExperimentalBrowser/1.0)")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("non-IE browser status = %d, want %d", response.Code, http.StatusForbidden)
+	}
+}
+
 func TestIE6CanOpenLunaPassportHome(t *testing.T) {
 	handler := newServer("test@example.com", "testpass").routes()
 	request := httptest.NewRequest(http.MethodGet, "/static/netpass/index.html", nil)

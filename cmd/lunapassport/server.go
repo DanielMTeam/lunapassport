@@ -138,18 +138,28 @@ func (s *server) rememberToken(token, passportName string) error {
 
 func (s *server) tokenUser(token string) (string, bool) {
 	s.mu.RLock()
-	passportName, ok := s.tokens[token]
+	passportName, cached := s.tokens[token]
 	s.mu.RUnlock()
-	if ok {
-		return passportName, true
+	if !cached {
+		var ok bool
+		var err error
+		passportName, ok, err = s.accounts.findToken(token, time.Now())
+		if err != nil || !ok {
+			return "", false
+		}
 	}
-	passportName, ok, err := s.accounts.findToken(token, time.Now())
-	if err != nil || !ok {
+	if _, found, err := s.accounts.findByPassportName(passportName); err != nil || !found {
+		_ = s.accounts.deleteToken(token)
+		s.mu.Lock()
+		delete(s.tokens, token)
+		s.mu.Unlock()
 		return "", false
 	}
-	s.mu.Lock()
-	s.tokens[token] = passportName
-	s.mu.Unlock()
+	if !cached {
+		s.mu.Lock()
+		s.tokens[token] = passportName
+		s.mu.Unlock()
+	}
 	return passportName, true
 }
 

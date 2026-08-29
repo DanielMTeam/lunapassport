@@ -19,7 +19,7 @@ func TestModernBrowserGetsLegacyCompatibilityNotice(t *testing.T) {
 		t.Fatalf("modern browser status = %d, want %d", response.Code, http.StatusForbidden)
 	}
 	page := response.Body.String()
-	for _, required := range []string{"Internet Explorer", ".NET Passport", "https://lunastore.app", "/static/img/iewarn.png"} {
+	for _, required := range []string{"Internet Explorer", ".NET Passport", "https://lunastore.app", "href=\"/partners\"", "/static/img/iewarn.png"} {
 		if !strings.Contains(page, required) {
 			t.Fatalf("modern browser notice must include %q: %q", required, page)
 		}

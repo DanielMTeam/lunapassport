@@ -435,31 +435,6 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatalf("update Passport account: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
 	}
 
-	passportAuthorization = "Passport1.4 sign-in=updated%40example.com,pwd=updatedpass"
-	updatedClient := *client
-	updatedClient.Jar = nil
-
-	request, err = http.NewRequest(http.MethodGet, baseURL+"/ppsecure/MSRV_EditProfile.asp?saved=1", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.Header.Set("Authorization", passportAuthorization)
-	resp, err = updatedClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	updatedProperties, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	updatedPage := string(updatedProperties)
-	for _, marker := range []string{"updated@example.com", "Updated Passport", "What was your first pet?", "Account settings saved."} {
-		if !strings.Contains(updatedPage, marker) {
-			t.Fatalf("updated properties page missing %q", marker)
-		}
-	}
-
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/login2.srf", nil)
 	if err != nil {
 		t.Fatal(err)

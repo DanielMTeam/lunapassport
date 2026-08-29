@@ -48,13 +48,6 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		responseType = "code"
 	}
 
-	account, found, err := s.accounts.findByPassportName(passportName)
-	if err != nil || !found {
-		http.Error(w, "account store failure", http.StatusInternalServerError)
-		return
-	}
-	signIn := account.SignIn
-
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {
 		http.Error(w, "account store failure", http.StatusInternalServerError)
@@ -208,6 +201,13 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/oauth/authorize?"+q.Encode(), http.StatusFound)
 		return
 	}
+
+	account, found, err := s.accounts.findByPassportName(passportName)
+	if err != nil || !found {
+		http.Error(w, "account store failure", http.StatusInternalServerError)
+		return
+	}
+	signIn := account.SignIn
 
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {

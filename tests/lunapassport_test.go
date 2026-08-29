@@ -435,6 +435,20 @@ func TestLunaPassportEndToEnd(t *testing.T) {
 		t.Fatalf("update Passport account: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
 	}
 
+	request, err = http.NewRequest(http.MethodGet, baseURL+"/ppsecure/MSRV_EditProfile.asp?saved=1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", passportAuthorization)
+	resp, err = redirectClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("updated Passport session must remain authenticated: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
+	}
+
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/login2.srf", nil)
 	if err != nil {
 		t.Fatal(err)

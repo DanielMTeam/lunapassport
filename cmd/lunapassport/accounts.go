@@ -344,6 +344,13 @@ func (s *accountStore) saveToken(token, signIn string, expiresAt time.Time) erro
 	return nil
 }
 
+func (s *accountStore) updateTokenIdentity(token, passportName string) error {
+	if err := s.db.Model(&passportToken{}).Where("token = ?", token).Update("passport_name", passportName).Error; err != nil {
+		return fmt.Errorf("update Passport token: %w", err)
+	}
+	return nil
+}
+
 func (s *accountStore) findToken(token string, now time.Time) (string, bool, error) {
 	var record passportToken
 	err := s.db.Where("token = ? AND expires_at > ?", token, now.UTC().Format(time.RFC3339)).First(&record).Error

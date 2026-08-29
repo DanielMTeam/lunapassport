@@ -163,13 +163,17 @@ func (s *server) tokenUser(token string) (string, bool) {
 	return passportName, true
 }
 
-func (s *server) rebindToken(token, signIn string) {
+func (s *server) rebindToken(token, passportName string) error {
 	if token == "" {
-		return
+		return nil
+	}
+	if err := s.accounts.updateTokenIdentity(token, passportName); err != nil {
+		return err
 	}
 	s.mu.Lock()
-	s.tokens[token] = signIn
+	s.tokens[token] = passportName
 	s.mu.Unlock()
+	return nil
 }
 
 func (s *server) handleHealth(w http.ResponseWriter, _ *http.Request) {

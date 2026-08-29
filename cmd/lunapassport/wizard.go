@@ -107,7 +107,7 @@ func (s *server) handleWizard(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create wizard token", http.StatusInternalServerError)
 			return
 		}
-		if err := s.rememberToken(token, email); err != nil {
+		if err := s.rememberToken(token, account.PassportName); err != nil {
 			http.Error(w, "cannot store wizard token", http.StatusInternalServerError)
 			return
 		}

@@ -39,7 +39,7 @@ func (s *server) handleOAuthRegister(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot create token", 500)
 		return
 	}
-	if err = s.rememberToken(token, a.SignIn); err != nil {
+	if err = s.rememberToken(token, a.PassportName); err != nil {
 		http.Error(w, "cannot store token", 500)
 		return
 	}

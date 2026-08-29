@@ -137,7 +137,7 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create token", http.StatusInternalServerError)
 			return
 		}
-		if err := s.rememberToken(token, account.SignIn); err != nil {
+		if err := s.rememberToken(token, account.PassportName); err != nil {
 			http.Error(w, "cannot store token", http.StatusInternalServerError)
 			return
 		}

@@ -125,7 +125,7 @@ func (s *server) routes() http.Handler {
 	mux.Handle("/static/", s.staticHandler())
 	mux.HandleFunc("/netpass/", s.handleLunaPassportHome)
 	mux.HandleFunc("/", s.handleLunaPassportRoot)
-	return loggingMiddleware(mux)
+	return loggingMiddleware(legacyBrowserOnly(mux))
 }
 
 func (s *server) rememberToken(token, passportName string) error {

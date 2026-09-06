@@ -205,7 +205,8 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 	clientID := strings.TrimSpace(r.Form.Get("client_id"))
 	redirectURI := strings.TrimSpace(r.Form.Get("redirect_uri"))
 	state := r.Form.Get("state")
-	decision := strings.TrimSpace(r.Form.Get("decision"))
+	// ie6 <button> may post inner text ("Allow") instead of value=
+	decision := strings.ToLower(strings.TrimSpace(r.Form.Get("decision")))
 
 	passportName, ok := s.browserPassportUser(r)
 	if !ok {
@@ -235,8 +236,6 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decision := strings.ToLower(strings.TrimSpace(r.Form.Get("decision")))
-	// ie6 <button> may post inner text ("Allow") instead of value=
 	if decision != "allow" {
 		s.redirectOAuthError(w, r, redirectURI, state, "access_denied", "The user denied the request")
 		return

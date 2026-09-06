@@ -64,6 +64,10 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "redirect_uri is not registered for this client", http.StatusBadRequest)
 		return
 	}
+	if responseType != "code" {
+		s.writeOAuthAuthorizeError(w, redirectURI, state, "unsupported_response_type", "Only response_type=code is supported")
+		return
+	}
 
 	if responseType != "code" {
 		s.writeOAuthAuthorizeError(w, redirectURI, state, "unsupported_response_type", "Only response_type=code is supported")
@@ -145,7 +149,7 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create token", http.StatusInternalServerError)
 			return
 		}
-		if err := s.rememberToken(token, account.SignIn); err != nil {
+		if err := s.rememberToken(token, account.PassportName); err != nil {
 			http.Error(w, "cannot store token", http.StatusInternalServerError)
 			return
 		}
@@ -203,7 +207,7 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 	state := r.Form.Get("state")
 	decision := strings.TrimSpace(r.Form.Get("decision"))
 
-	signIn, ok := s.browserPassportUser(r)
+	passportName, ok := s.browserPassportUser(r)
 	if !ok {
 		q := url.Values{}
 		q.Set("client_id", clientID)
@@ -213,6 +217,13 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/oauth/authorize?"+q.Encode(), http.StatusFound)
 		return
 	}
+
+	account, found, err := s.accounts.findByPassportName(passportName)
+	if err != nil || !found {
+		http.Error(w, "account store failure", http.StatusInternalServerError)
+		return
+	}
+	signIn := account.SignIn
 
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {

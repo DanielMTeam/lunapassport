@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
 
@@ -36,6 +37,9 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	cmd := exec.Command(binary,
 		"-http", "127.0.0.1:"+httpPort,
 		"-db", dbPath,
+		"-seed-account-email", "test@example.com",
+		"-seed-account-password", "testpass",
+		"-seed-account-passport-name", "Test Passport",
 		"-oauth-secret-pepper", "test-pepper",
 	)
 	cmd.Dir = root
@@ -444,6 +448,10 @@ func insertExtraPassportAccount(t *testing.T, dbPath string) {
 	t.Helper()
 	// Allow the running server to finish any open write.
 	time.Sleep(50 * time.Millisecond)
+	hash, err := bcrypt.GenerateFromPassword([]byte("otherpass"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatal(err)
@@ -451,7 +459,7 @@ func insertExtraPassportAccount(t *testing.T, dbPath string) {
 	defer db.Close()
 	_, err = db.Exec(`INSERT INTO passport_accounts (sign_in, passport_name, password, secret_question, secret_answer, created_at)
 		VALUES (?, ?, ?, ?, ?, ?)`,
-		"other@example.com", "Other User", "otherpass", "", "", time.Now().UTC().Format(time.RFC3339))
+		"other@example.com", "Other User", string(hash), "", "", time.Now().UTC().Format(time.RFC3339))
 	if err != nil {
 		t.Fatalf("insert second account: %v", err)
 	}

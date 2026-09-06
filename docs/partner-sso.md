@@ -25,7 +25,7 @@ flowchart TD
 ```
 
 - **Different domain** (`shop.example.com` vs `passport.lab`) → **OAuth only**.
-- **Same parent domain** (`app.alexsyw.me` + `passport-staging.alexsyw.me` with cookie domain `.alexsyw.me`) → classic cookies **or** OAuth.
+- **Same parent domain** (`app.lunastore.app` + `passport-staging.lunastore.app` with cookie domain `.lunastore.app`) → classic cookies **or** OAuth.
 
 ## Register an application
 
@@ -260,7 +260,7 @@ import (
 )
 
 const (
-	passportBase = "https://passport-staging.alexsyw.me"
+	passportBase = "https://passport-staging.lunastore.app"
 	clientID     = "YOUR_CLIENT_ID"
 	clientSecret = "YOUR_CLIENT_SECRET"
 	redirectURI  = "https://yoursite.example/callback"
@@ -327,7 +327,7 @@ Register `https://yoursite.example/callback` on `/partners` before testing.
 
 ### Requirements
 
-- Your site host is under the same parent as `PASSPORT_COOKIE_DOMAIN` (example: `.alexsyw.me`).
+- Your site host is under the same parent as `PASSPORT_COOKIE_DOMAIN` (example: `.lunastore.app`).
 - The return URL is registered on `/partners` with **classic Passport partner** enabled.
 
 Cookies `MSPAuth` / `MSPProf` / `PPAuth` are scoped to that parent domain. They will **not** appear on unrelated domains — use OAuth there.
@@ -337,7 +337,7 @@ Cookies `MSPAuth` / `MSPProf` / `PPAuth` are scoped to that parent domain. They 
 1. Send the user to:
 
 ```text
-GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.alexsyw.me/passport/return
+GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.lunastore.app/passport/return
 ```
 
 2. After login (HTML path / existing `PPAuth`), LunaPassport:
@@ -347,7 +347,7 @@ GET https://PASSPORT_HOST/login2.srf?browser=1&ru=https://app.alexsyw.me/passpor
 Alternative after an existing browser session:
 
 ```text
-GET https://PASSPORT_HOST/partner/complete?ru=https://app.alexsyw.me/passport/return
+GET https://PASSPORT_HOST/partner/complete?ru=https://app.lunastore.app/passport/return
 ```
 
 ### Verify session

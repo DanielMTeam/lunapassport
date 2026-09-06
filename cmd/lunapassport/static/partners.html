@@ -44,6 +44,7 @@
             {{if .StatusText}}<div class="status_message success_message">{{.StatusText}}</div>{{end}}
 
             <form action="/partners" method="post">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                 <input type="hidden" name="action" value="create">
                 <fieldset class="properties_fieldset">
                     <legend>New application</legend>
@@ -92,24 +93,28 @@
                     {{range .RedirectURIList}}{{.}}<br>{{end}}
                 </p>
                 <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="action" value="rotate">
                     <input type="hidden" name="client_id" value="{{.ClientID}}">
                     <button class="box_action_button" type="submit">Rotate secret</button>
                 </form>
                 {{if .Enabled}}
                 <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="action" value="disable">
                     <input type="hidden" name="client_id" value="{{.ClientID}}">
                     <button class="box_action_button" type="submit">Disable</button>
                 </form>
                 {{else}}
                 <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="action" value="enable">
                     <input type="hidden" name="client_id" value="{{.ClientID}}">
                     <button class="box_action_button" type="submit">Enable</button>
                 </form>
                 {{end}}
                 <form action="/partners" method="post" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="client_id" value="{{.ClientID}}">
                     <button class="box_action_button" type="submit">Delete</button>

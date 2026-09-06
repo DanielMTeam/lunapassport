@@ -41,6 +41,7 @@ func main() {
 		"login.passport.com",
 		"nexus.passport.com",
 		"register.passport.com",
+		"register.pidoras.top",
 		"memberservices.passport.com",
 		"www.passport.com",
 		"nexusrdr.passport.com",

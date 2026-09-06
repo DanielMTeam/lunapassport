@@ -38,6 +38,30 @@ flowchart TD
 4. Copy `client_id` and `client_secret` immediately. The secret is shown once (rotate later from the same page).
 
 Secrets are stored hashed with `OAUTH_SECRET_PEPPER` / `-oauth-secret-pepper`.
+Only the account that created an application can list, rotate, disable, or delete it.
+
+## Compatibility (OAuth 2.0 vs OIDC)
+
+LunaPassport is a **confidential-client OAuth 2.0 Authorization Code** IdP.
+It is **not** a full OpenID Connect provider.
+
+| Feature | Supported |
+| --- | --- |
+| Authorization Code (`response_type=code`) | Yes |
+| Client secret (form body or HTTP Basic) | Yes |
+| Exact `redirect_uri` allowlist | Yes |
+| Opaque Bearer access token | Yes |
+| `/oauth/userinfo` (`sub`, `sign_in`, `passport_name`) | Yes |
+| Token revoke | Yes |
+| `state` (validated by **your** site) | Pass-through |
+| OIDC discovery (`.well-known/openid-configuration`) | No |
+| `id_token` / JWKS | No |
+| PKCE | No (not needed for Django + secret) |
+| Refresh tokens / scopes | No |
+
+**Django:** use Authlib / `requests-oauthlib`, or a custom django-allauth
+`OAuth2Provider` with manual authorize/token/userinfo URLs. Auto-OIDC discovery
+(as with Google) will not work.
 
 ## OAuth 2.0 (any website)
 
@@ -146,6 +170,82 @@ Content-Type: application/x-www-form-urlencoded
 
 token=ACCESS_TOKEN
 ```
+
+### Django (Authlib) — recommended for modern sites
+
+Register this exact redirect URI on `/partners`:
+
+```text
+https://yourdjango.example/accounts/passport/callback/
+```
+
+Install Authlib and wire two views (sketch):
+
+```python
+# pip install Authlib requests
+import secrets
+from authlib.integrations.requests_client import OAuth2Session
+from django.conf import settings
+from django.contrib.auth import get_user_model, login
+from django.http import HttpResponseBadRequest
+from django.shortcuts import redirect
+
+PASSPORT = settings.LUNAPASSPORT_BASE  # e.g. https://passport-staging.alexsyw.me
+CLIENT_ID = settings.LUNAPASSPORT_CLIENT_ID
+CLIENT_SECRET = settings.LUNAPASSPORT_CLIENT_SECRET
+REDIRECT_URI = settings.LUNAPASSPORT_REDIRECT_URI
+AUTHORIZE_URL = f"{PASSPORT}/oauth/authorize"
+TOKEN_URL = f"{PASSPORT}/oauth/token"
+USERINFO_URL = f"{PASSPORT}/oauth/userinfo"
+
+
+def passport_login(request):
+    state = secrets.token_urlsafe(24)
+    request.session["oauth_state"] = state
+    client = OAuth2Session(CLIENT_ID, CLIENT_SECRET, redirect_uri=REDIRECT_URI, state=state)
+    uri, _ = client.create_authorization_url(AUTHORIZE_URL)
+    return redirect(uri)
+
+
+def passport_callback(request):
+    if request.GET.get("error"):
+        return HttpResponseBadRequest(request.GET.get("error_description", "oauth error"))
+    if request.GET.get("state") != request.session.get("oauth_state"):
+        return HttpResponseBadRequest("state mismatch")
+
+    client = OAuth2Session(CLIENT_ID, CLIENT_SECRET, redirect_uri=REDIRECT_URI)
+    token = client.fetch_token(
+        TOKEN_URL,
+        authorization_response=request.build_absolute_uri(),
+        client_secret=CLIENT_SECRET,
+    )
+    resp = client.get(USERINFO_URL)
+    resp.raise_for_status()
+    profile = resp.json()  # sub / sign_in / passport_name
+
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username=profile["sign_in"],
+        defaults={"email": profile["sign_in"]},
+    )
+    login(request, user)
+    return redirect("/")
+```
+
+Keep `client_secret` only in Django settings / env — never in browser JS.
+
+**django-allauth:** add a custom `OAuth2Provider` with
+`authorize_url`, `access_token_url`, and `profile_url` pointing at the three
+endpoints above; map `sub` / `sign_in` to the local user. Do not enable OIDC
+auto-discovery for LunaPassport.
+
+### Security notes (partner sites)
+
+- Always generate and verify `state` in your app session (CSRF on the OAuth round-trip).
+- Register the redirect URI **exactly** (scheme, host, path, trailing slash).
+- Treat LunaPassport as a **lab IdP** — isolate the network; do not reuse tokens with real Microsoft services.
+- Store `client_secret` server-side only.
+- IdP login/consent/`/partners` forms use a same-site CSRF cookie (`LPCsrf`); your Django site still needs its own CSRF/`state` handling.
 
 ### Minimal Go callback sample
 

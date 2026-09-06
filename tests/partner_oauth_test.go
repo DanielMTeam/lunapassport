@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,11 +13,16 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
 )
 
 func TestPartnerOAuthAndClassic(t *testing.T) {
 	root := repositoryRoot(t)
 	workDir := t.TempDir()
+	dbPath := filepath.Join(workDir, "accounts.db")
 	binary := filepath.Join(workDir, "lunapassport")
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
@@ -30,7 +36,10 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	httpPort := freePort(t)
 	cmd := exec.Command(binary,
 		"-http", "127.0.0.1:"+httpPort,
-		"-db", filepath.Join(workDir, "accounts.db"),
+		"-db", dbPath,
+		"-seed-account-email", "test@example.com",
+		"-seed-account-password", "testpass",
+		"-seed-account-passport-name", "Test Passport",
 		"-oauth-secret-pepper", "test-pepper",
 	)
 	cmd.Dir = root
@@ -55,39 +64,23 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	redirectClient := *client
 	redirectClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
 
-	loginForm := url.Values{
-		"email":    {"test@example.com"},
-		"password": {"testpass"},
-		"return_to": {"/partners"},
-	}
-	request, err := http.NewRequest(http.MethodPost, baseURL+"/oauth/login", strings.NewReader(loginForm.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := redirectClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ppAuth := cookieNamed(resp, "PPAuth")
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusFound || ppAuth == nil {
-		t.Fatalf("oauth login: status=%d cookie=%v", resp.StatusCode, resp.Cookies())
-	}
+	ppAuth, csrf := oauthLogin(t, &redirectClient, baseURL, "test@example.com", "testpass", "/partners")
 
 	createForm := url.Values{
+		"csrf_token":      {csrf.Value},
 		"action":          {"create"},
 		"name":            {"Demo Site"},
 		"redirect_uris":   {"https://app.example.com/oauth/callback\nhttps://app.example.com/passport/return"},
 		"classic_enabled": {"1"},
 	}
-	request, err = http.NewRequest(http.MethodPost, baseURL+"/partners", strings.NewReader(createForm.Encode()))
+	request, err := http.NewRequest(http.MethodPost, baseURL+"/partners", strings.NewReader(createForm.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.AddCookie(ppAuth)
-	resp, err = client.Do(request)
+	request.AddCookie(csrf)
+	resp, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,6 +113,24 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 		t.Fatalf("bad redirect_uri must be rejected: status=%d", resp.StatusCode)
 	}
 
+	// Unsupported response_type must not open-redirect to an unregistered URI.
+	request, err = http.NewRequest(http.MethodGet, baseURL+"/oauth/authorize?response_type=token&client_id="+clientID+"&redirect_uri="+url.QueryEscape("https://evil.example/cb")+"&state=xyz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.AddCookie(ppAuth)
+	resp, err = redirectClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode == http.StatusFound && strings.Contains(resp.Header.Get("Location"), "evil.example") {
+		t.Fatalf("unsupported response_type must not redirect to unregistered URI: location=%q", resp.Header.Get("Location"))
+	}
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unregistered redirect_uri with bad response_type: status=%d location=%q", resp.StatusCode, resp.Header.Get("Location"))
+	}
+
 	authorizeURL := baseURL + "/oauth/authorize?response_type=code&client_id=" + clientID +
 		"&redirect_uri=" + url.QueryEscape("https://app.example.com/oauth/callback") + "&state=abc"
 	request, err = http.NewRequest(http.MethodGet, authorizeURL, nil)
@@ -139,8 +150,40 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	if resp.StatusCode != http.StatusOK || !strings.Contains(string(consentBody), "Allow Demo Site?") {
 		t.Fatalf("consent page: status=%d body=%q", resp.StatusCode, consentBody)
 	}
+	consentCSRF := firstMatch(t, string(consentBody), `name="csrf_token" value="([^"]+)"`)
+	if consentCSRF == "" {
+		t.Fatal("consent page missing csrf_token")
+	}
+	csrfCookie := cookieNamed(resp, "LPCsrf")
+	if csrfCookie == nil {
+		csrfCookie = &http.Cookie{Name: "LPCsrf", Value: consentCSRF}
+	}
+
+	// Consent without CSRF must be rejected.
+	badConsent := url.Values{
+		"client_id":    {clientID},
+		"redirect_uri": {"https://app.example.com/oauth/callback"},
+		"state":        {"abc"},
+		"decision":     {"allow"},
+	}
+	request, err = http.NewRequest(http.MethodPost, baseURL+"/oauth/authorize/consent", strings.NewReader(badConsent.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(ppAuth)
+	request.AddCookie(csrfCookie)
+	resp, err = client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("consent without csrf_token: status=%d", resp.StatusCode)
+	}
 
 	consentForm := url.Values{
+		"csrf_token":   {consentCSRF},
 		"client_id":    {clientID},
 		"redirect_uri": {"https://app.example.com/oauth/callback"},
 		"state":        {"abc"},
@@ -152,6 +195,7 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.AddCookie(ppAuth)
+	request.AddCookie(csrfCookie)
 	resp, err = redirectClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -229,6 +273,65 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 		t.Fatalf("userinfo: status=%d body=%s", resp.StatusCode, infoBody)
 	}
 
+	// Second user must not rotate or delete another owner's app.
+	insertExtraPassportAccount(t, dbPath)
+	otherAuth, otherCSRF := oauthLogin(t, &redirectClient, baseURL, "other@example.com", "otherpass", "/partners")
+	rotateForm := url.Values{
+		"csrf_token": {otherCSRF.Value},
+		"action":     {"rotate"},
+		"client_id":  {clientID},
+	}
+	request, err = http.NewRequest(http.MethodPost, baseURL+"/partners", strings.NewReader(rotateForm.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(otherAuth)
+	request.AddCookie(otherCSRF)
+	resp, err = client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rotateBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(rotateBody), "OAuth client not found") {
+		t.Fatalf("non-owner rotate must fail: status=%d body=%s", resp.StatusCode, rotateBody)
+	}
+	if tok := firstMatch(t, string(rotateBody), `name="csrf_token" value="([^"]+)"`); tok != "" {
+		otherCSRF = &http.Cookie{Name: "LPCsrf", Value: tok}
+	}
+
+	deleteForm := url.Values{
+		"csrf_token": {otherCSRF.Value},
+		"action":     {"delete"},
+		"client_id":  {clientID},
+	}
+	request, err = http.NewRequest(http.MethodPost, baseURL+"/partners", strings.NewReader(deleteForm.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(otherAuth)
+	request.AddCookie(otherCSRF)
+	resp, err = client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deleteBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(deleteBody), "OAuth client not found") {
+		t.Fatalf("non-owner delete must fail: status=%d body=%s", resp.StatusCode, deleteBody)
+	}
+	if strings.Contains(string(deleteBody), "Application deleted") {
+		t.Fatal("non-owner must not delete foreign application")
+	}
+
 	request, err = http.NewRequest(http.MethodGet, baseURL+"/login2.srf?browser=1&ru="+url.QueryEscape("https://evil.example/return"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -288,6 +391,77 @@ func TestPartnerOAuthAndClassic(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Authentication-Info"), "da-status=success") {
 		t.Fatalf("SSI Authorization path must stay intact: status=%d auth-info=%q", resp.StatusCode, resp.Header.Get("Authentication-Info"))
+	}
+}
+
+func oauthLogin(t *testing.T, redirectClient *http.Client, baseURL, email, password, returnTo string) (*http.Cookie, *http.Cookie) {
+	t.Helper()
+	resp, err := redirectClient.Get(baseURL + "/oauth/login?return_to=" + url.QueryEscape(returnTo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("oauth login page: status=%d", resp.StatusCode)
+	}
+	csrfToken := firstMatch(t, string(body), `name="csrf_token" value="([^"]+)"`)
+	if csrfToken == "" {
+		t.Fatal("login page missing csrf_token")
+	}
+	csrfCookie := cookieNamed(resp, "LPCsrf")
+	if csrfCookie == nil {
+		csrfCookie = &http.Cookie{Name: "LPCsrf", Value: csrfToken}
+	}
+
+	loginForm := url.Values{
+		"csrf_token": {csrfToken},
+		"email":      {email},
+		"password":   {password},
+		"return_to":  {returnTo},
+	}
+	request, err := http.NewRequest(http.MethodPost, baseURL+"/oauth/login", strings.NewReader(loginForm.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.AddCookie(csrfCookie)
+	resp, err = redirectClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ppAuth := cookieNamed(resp, "PPAuth")
+	if newCSRF := cookieNamed(resp, "LPCsrf"); newCSRF != nil {
+		csrfCookie = newCSRF
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusFound || ppAuth == nil {
+		t.Fatalf("oauth login: status=%d cookie=%v", resp.StatusCode, resp.Cookies())
+	}
+	return ppAuth, csrfCookie
+}
+
+func insertExtraPassportAccount(t *testing.T, dbPath string) {
+	t.Helper()
+	// Allow the running server to finish any open write.
+	time.Sleep(50 * time.Millisecond)
+	hash, err := bcrypt.GenerateFromPassword([]byte("otherpass"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	_, err = db.Exec(`INSERT INTO passport_accounts (sign_in, passport_name, password, secret_question, secret_answer, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		"other@example.com", "Other User", string(hash), "", "", time.Now().UTC().Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("insert second account: %v", err)
 	}
 }
 

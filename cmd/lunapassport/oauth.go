@@ -17,6 +17,7 @@ type oauthLoginPageData struct {
 	ReturnTo    string
 	Email       string
 	ErrorText   string
+	CSRFToken   string
 }
 
 type oauthConsentPageData struct {
@@ -26,6 +27,7 @@ type oauthConsentPageData struct {
 	State       string
 	SignIn      string
 	ErrorText   string
+	CSRFToken   string
 }
 
 var (
@@ -48,6 +50,7 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		responseType = "code"
 	}
 
+	// Validate client and exact redirect_uri before any redirect (including error redirects).
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {
 		http.Error(w, "account store failure", http.StatusInternalServerError)
@@ -66,8 +69,13 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if responseType != "code" {
+		s.writeOAuthAuthorizeError(w, redirectURI, state, "unsupported_response_type", "Only response_type=code is supported")
+		return
+	}
+
 	if signIn, ok := s.browserPassportUser(r); ok {
-		s.renderOAuthConsent(w, oauthConsentPageData{
+		s.renderOAuthConsent(w, r, oauthConsentPageData{
 			ClientID:    client.ClientID,
 			ClientName:  client.Name,
 			RedirectURI: redirectURI,
@@ -77,7 +85,7 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.renderOAuthLogin(w, oauthLoginPageData{
+	s.renderOAuthLogin(w, r, oauthLoginPageData{
 		ClientID:    client.ClientID,
 		ClientName:  client.Name,
 		RedirectURI: redirectURI,
@@ -88,7 +96,7 @@ func (s *server) handleOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		s.renderOAuthLogin(w, oauthLoginPageData{
+		s.renderOAuthLogin(w, r, oauthLoginPageData{
 			ClientID:    strings.TrimSpace(r.URL.Query().Get("client_id")),
 			RedirectURI: strings.TrimSpace(r.URL.Query().Get("redirect_uri")),
 			State:       r.URL.Query().Get("state"),
@@ -99,6 +107,10 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad form", http.StatusBadRequest)
+			return
+		}
+		if !s.validateCSRF(r) {
+			http.Error(w, "invalid CSRF token", http.StatusForbidden)
 			return
 		}
 		email := strings.TrimSpace(r.Form.Get("email"))
@@ -128,7 +140,7 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			w.WriteHeader(http.StatusUnauthorized)
-			s.renderOAuthLogin(w, data)
+			s.renderOAuthLogin(w, r, data)
 			return
 		}
 
@@ -137,7 +149,7 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create token", http.StatusInternalServerError)
 			return
 		}
-		if err := s.rememberToken(token, account.SignIn); err != nil {
+		if err := s.rememberToken(token, account.PassportName); err != nil {
 			http.Error(w, "cannot store token", http.StatusInternalServerError)
 			return
 		}
@@ -161,7 +173,7 @@ func (s *server) handleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid OAuth client or redirect_uri", http.StatusBadRequest)
 			return
 		}
-		s.renderOAuthConsent(w, oauthConsentPageData{
+		s.renderOAuthConsent(w, r, oauthConsentPageData{
 			ClientID:    client.ClientID,
 			ClientName:  client.Name,
 			RedirectURI: redirectURI,
@@ -185,13 +197,17 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad form", http.StatusBadRequest)
 		return
 	}
+	if !s.validateCSRF(r) {
+		http.Error(w, "invalid CSRF token", http.StatusForbidden)
+		return
+	}
 
 	clientID := strings.TrimSpace(r.Form.Get("client_id"))
 	redirectURI := strings.TrimSpace(r.Form.Get("redirect_uri"))
 	state := r.Form.Get("state")
 	decision := strings.TrimSpace(r.Form.Get("decision"))
 
-	signIn, ok := s.browserPassportUser(r)
+	passportName, ok := s.browserPassportUser(r)
 	if !ok {
 		q := url.Values{}
 		q.Set("client_id", clientID)
@@ -201,6 +217,13 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/oauth/authorize?"+q.Encode(), http.StatusFound)
 		return
 	}
+
+	account, found, err := s.accounts.findByPassportName(passportName)
+	if err != nil || !found {
+		http.Error(w, "account store failure", http.StatusInternalServerError)
+		return
+	}
+	signIn := account.SignIn
 
 	client, found, err := s.accounts.findOAuthClient(clientID)
 	if err != nil {
@@ -389,15 +412,18 @@ func (s *server) setPPAuthCookie(w http.ResponseWriter, r *http.Request, token s
 		MaxAge:   int(passportTokenLifetime / time.Second),
 		Secure:   true,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
-func (s *server) renderOAuthLogin(w http.ResponseWriter, data oauthLoginPageData) {
+func (s *server) renderOAuthLogin(w http.ResponseWriter, r *http.Request, data oauthLoginPageData) {
+	data.CSRFToken = s.ensureCSRFToken(w, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = oauthLoginTemplate.Execute(w, data)
 }
 
-func (s *server) renderOAuthConsent(w http.ResponseWriter, data oauthConsentPageData) {
+func (s *server) renderOAuthConsent(w http.ResponseWriter, r *http.Request, data oauthConsentPageData) {
+	data.CSRFToken = s.ensureCSRFToken(w, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = oauthConsentTemplate.Execute(w, data)
 }

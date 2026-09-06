@@ -30,6 +30,7 @@
             {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
 
             <form action="/oauth/login" method="post">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                 <input type="hidden" name="client_id" value="{{.ClientID}}">
                 <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
                 <input type="hidden" name="state" value="{{.State}}">
@@ -51,6 +52,7 @@
 
                 <div class="form_actions">
                     <button class="box_action_button" type="submit">Sign in</button>
+                    <a href="/oauth/register">Create a LunaPassport account</a>
                 </div>
             </form>
         </div>

@@ -107,7 +107,7 @@ func (s *server) handleWizard(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "cannot create wizard token", http.StatusInternalServerError)
 			return
 		}
-		if err := s.rememberToken(token, email); err != nil {
+		if err := s.rememberToken(token, account.PassportName); err != nil {
 			http.Error(w, "cannot store wizard token", http.StatusInternalServerError)
 			return
 		}
@@ -290,7 +290,10 @@ func (s *server) handleProperties(w http.ResponseWriter, r *http.Request) {
 			s.renderProperties(w, account, err.Error(), false)
 			return
 		}
-		s.rebindToken(tokenFromRequest(r), updated.SignIn)
+		if err := s.rebindToken(tokenFromRequest(r), updated.PassportName); err != nil {
+			http.Error(w, "cannot refresh Passport session", http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(w, r, "/ppsecure/MSRV_EditProfile.asp?saved=1", http.StatusFound)
 		return
 	}

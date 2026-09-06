@@ -67,58 +67,10 @@ func startTestServer(t *testing.T) testServerProcess {
 
 func loginForPartners(t *testing.T, server testServerProcess) (*http.Cookie, *http.Cookie) {
 	t.Helper()
-	response, err := server.redirectClient.Get(server.baseURL + "/oauth/login?return_to=" + url.QueryEscape("/partners"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	body, err := io.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("OAuth login page: status=%d", response.StatusCode)
-	}
-	csrfToken := firstMatch(t, string(body), `name="csrf_token" value="([^"]+)"`)
-	if csrfToken == "" {
-		t.Fatal("login page missing csrf_token")
-	}
-	csrfCookie := cookieNamed(response, "LPCsrf")
-	if csrfCookie == nil {
-		csrfCookie = &http.Cookie{Name: "LPCsrf", Value: csrfToken}
-	}
-
-	form := url.Values{
-		"csrf_token": {csrfToken},
-		"email":      {"test@example.com"},
-		"password":   {"testpass"},
-		"return_to":  {"/partners"},
-	}
-	request, err := http.NewRequest(http.MethodPost, server.baseURL+"/oauth/login", strings.NewReader(form.Encode()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.AddCookie(csrfCookie)
-	response, err = server.redirectClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusFound {
-		t.Fatalf("OAuth partner login: status=%d location=%q", response.StatusCode, response.Header.Get("Location"))
-	}
-	if newCSRF := cookieNamed(response, "LPCsrf"); newCSRF != nil {
-		csrfCookie = newCSRF
-	}
-	if cookie := cookieNamed(response, "PPAuth"); cookie != nil {
-		return cookie, csrfCookie
-	}
-	t.Fatalf("OAuth partner login did not return PPAuth: cookies=%v", response.Cookies())
-	return nil, nil
+	return oauthLogin(t, server.redirectClient, server.baseURL, "test@example.com", "testpass", "/partners")
 }
 
-func createTestPartner(t *testing.T, server testServerProcess, ppAuth, csrf *http.Cookie, classic bool) (string, string) {
+func createTestPartner(t *testing.T, server testServerProcess, ppAuth, csrf *http.Cookie, classic bool) (string, string, *http.Cookie) {
 	t.Helper()
 	classicValue := ""
 	if classic {
@@ -156,17 +108,15 @@ func createTestPartner(t *testing.T, server testServerProcess, ppAuth, csrf *htt
 	if clientID == "" || clientSecret == "" {
 		t.Fatalf("created partner credentials missing: %s", page)
 	}
-	return clientID, clientSecret
+	if tok := firstMatch(t, page, `name="csrf_token" value="([^"]+)"`); tok != "" {
+		csrf = &http.Cookie{Name: "LPCsrf", Value: tok}
+	}
+	return clientID, clientSecret, csrf
 }
 
-func fetchCSRF(t *testing.T, server testServerProcess, ppAuth *http.Cookie) (*http.Cookie, string) {
+func fetchOAuthLoginCSRF(t *testing.T, server testServerProcess, returnTo string) *http.Cookie {
 	t.Helper()
-	request, err := http.NewRequest(http.MethodGet, server.baseURL+"/partners", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.AddCookie(ppAuth)
-	response, err := server.client.Do(request)
+	response, err := server.redirectClient.Get(server.baseURL + "/oauth/login?return_to=" + url.QueryEscape(returnTo))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,21 +125,23 @@ func fetchCSRF(t *testing.T, server testServerProcess, ppAuth *http.Cookie) (*ht
 	if err != nil {
 		t.Fatal(err)
 	}
-	token := firstMatch(t, string(body), `name="csrf_token" value="([^"]+)"`)
-	if token == "" {
-		t.Fatal("partners page missing csrf_token")
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("oauth login page: status=%d", response.StatusCode)
 	}
-	csrf := cookieNamed(response, "LPCsrf")
-	if csrf == nil {
-		csrf = &http.Cookie{Name: "LPCsrf", Value: token}
+	csrfToken := firstMatch(t, string(body), `name="csrf_token" value="([^"]+)"`)
+	if csrfToken == "" {
+		t.Fatal("login page missing csrf_token")
 	}
-	return csrf, token
+	if cookie := cookieNamed(response, "LPCsrf"); cookie != nil {
+		return cookie
+	}
+	return &http.Cookie{Name: "LPCsrf", Value: csrfToken}
 }
 
 func TestOAuthAuthorizeValidatesErrorRedirect(t *testing.T) {
 	server := startTestServer(t)
 	ppAuth, csrf := loginForPartners(t, server)
-	clientID, _ := createTestPartner(t, server, ppAuth, csrf, false)
+	clientID, _, _ := createTestPartner(t, server, ppAuth, csrf, false)
 
 	request, err := http.NewRequest(http.MethodGet, server.baseURL+"/oauth/authorize?response_type=token&client_id="+url.QueryEscape(clientID)+"&redirect_uri="+url.QueryEscape("https://evil.example/callback")+"&state=private", nil)
 	if err != nil {
@@ -227,7 +179,7 @@ func TestOAuthAuthorizeValidatesErrorRedirect(t *testing.T) {
 func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 	server := startTestServer(t)
 	ppAuth, csrf := loginForPartners(t, server)
-	clientID, _ := createTestPartner(t, server, ppAuth, csrf, true)
+	clientID, _, csrf := createTestPartner(t, server, ppAuth, csrf, true)
 
 	response, err := server.client.PostForm(server.baseURL+"/oauth/token", url.Values{"grant_type": {"password"}})
 	if err != nil {
@@ -259,33 +211,8 @@ func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 		t.Fatalf("missing OAuth bearer token: status=%d body=%s", response.StatusCode, body)
 	}
 
-	authorizeURL := server.baseURL + "/oauth/authorize?response_type=code&client_id=" + url.QueryEscape(clientID) +
-		"&redirect_uri=" + url.QueryEscape("https://app.example.com/oauth/callback") + "&state=state-value"
-	request, err = http.NewRequest(http.MethodGet, authorizeURL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	request.AddCookie(ppAuth)
-	response, err = server.client.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	consentBody, err := io.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	consentCSRF := firstMatch(t, string(consentBody), `name="csrf_token" value="([^"]+)"`)
-	if consentCSRF == "" {
-		t.Fatal("consent page missing csrf_token")
-	}
-	csrfCookie := cookieNamed(response, "LPCsrf")
-	if csrfCookie == nil {
-		csrfCookie = &http.Cookie{Name: "LPCsrf", Value: consentCSRF}
-	}
-
 	denyForm := url.Values{
-		"csrf_token":   {consentCSRF},
+		"csrf_token":   {csrf.Value},
 		"client_id":    {clientID},
 		"redirect_uri": {"https://app.example.com/oauth/callback"},
 		"state":        {"state-value"},
@@ -297,7 +224,7 @@ func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	request.AddCookie(ppAuth)
-	request.AddCookie(csrfCookie)
+	request.AddCookie(csrf)
 	response, err = server.redirectClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -311,8 +238,7 @@ func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 		t.Fatalf("denied consent: status=%d location=%q", response.StatusCode, response.Header.Get("Location"))
 	}
 
-	csrf, csrfToken := fetchCSRF(t, server, ppAuth)
-	managementForm := url.Values{"csrf_token": {csrfToken}, "action": {"disable"}, "client_id": {clientID}}
+	managementForm := url.Values{"csrf_token": {csrf.Value}, "action": {"disable"}, "client_id": {clientID}}
 	request, err = http.NewRequest(http.MethodPost, server.baseURL+"/partners", strings.NewReader(managementForm.Encode()))
 	if err != nil {
 		t.Fatal(err)
@@ -343,28 +269,19 @@ func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 		t.Fatalf("disabled partner was authorized: status=%d", response.StatusCode)
 	}
 
-	loginPage, err := server.client.Get(server.baseURL + "/oauth/login?return_to=/partners")
-	if err != nil {
-		t.Fatal(err)
+	loginCSRF := fetchOAuthLoginCSRF(t, server, "/partners")
+	invalidLogin := url.Values{
+		"csrf_token": {loginCSRF.Value},
+		"email":      {"test@example.com"},
+		"password":   {"wrong"},
+		"return_to":  {"/partners"},
 	}
-	loginBody, err := io.ReadAll(loginPage.Body)
-	loginPage.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	loginCSRF := firstMatch(t, string(loginBody), `name="csrf_token" value="([^"]+)"`)
-	loginCSRFCookie := cookieNamed(loginPage, "LPCsrf")
-	if loginCSRFCookie == nil {
-		loginCSRFCookie = &http.Cookie{Name: "LPCsrf", Value: loginCSRF}
-	}
-
-	invalidLogin := url.Values{"csrf_token": {loginCSRF}, "email": {"test@example.com"}, "password": {"wrong"}, "return_to": {"/partners"}}
 	request, err = http.NewRequest(http.MethodPost, server.baseURL+"/oauth/login", strings.NewReader(invalidLogin.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.AddCookie(loginCSRFCookie)
+	request.AddCookie(loginCSRF)
 	response, err = server.client.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -377,17 +294,20 @@ func TestOAuthAndPartnerFailurePaths(t *testing.T) {
 	if response.StatusCode != http.StatusUnauthorized || !strings.Contains(string(body), "Invalid e-mail or password.") {
 		t.Fatalf("invalid OAuth login: status=%d body=%s", response.StatusCode, body)
 	}
-	if tok := firstMatch(t, string(body), `name="csrf_token" value="([^"]+)"`); tok != "" {
-		loginCSRF = tok
-	}
 
-	unsafeReturn := url.Values{"csrf_token": {loginCSRF}, "email": {"test@example.com"}, "password": {"testpass"}, "return_to": {"//evil.example/collect"}}
+	loginCSRF = fetchOAuthLoginCSRF(t, server, "//evil.example/collect")
+	unsafeReturn := url.Values{
+		"csrf_token": {loginCSRF.Value},
+		"email":      {"test@example.com"},
+		"password":   {"testpass"},
+		"return_to":  {"//evil.example/collect"},
+	}
 	request, err = http.NewRequest(http.MethodPost, server.baseURL+"/oauth/login", strings.NewReader(unsafeReturn.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	request.AddCookie(loginCSRFCookie)
+	request.AddCookie(loginCSRF)
 	response, err = server.redirectClient.Do(request)
 	if err != nil {
 		t.Fatal(err)

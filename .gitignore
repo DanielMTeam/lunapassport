@@ -13,3 +13,4 @@ dist/
 legacy-tools/
 _data/
 .env
+letsencrypt/

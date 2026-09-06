@@ -131,6 +131,16 @@ printf 'GET /healthz HTTP/1.0\r\nHost: memberservices.lunastore.app\r\n\r\n' \
 
 A successful test returns `HTTP/1.0 200 OK` and `ok`.
 
+## Windows XP
+
+Add to the XP `hosts` file:
+
+```text
+<server-ip> passport-staging.pidoras.top memberservices-staging.pidoras.top
+```
+
+Import the Let's Encrypt CA into Trusted Root Certification Authorities, then import [`tools/passport-test.reg`](../tools/passport-test.reg).
+
 ## Fast troubleshooting
 
 - **ACME/DNS error:** point both `A` records at the VM and wait for propagation.

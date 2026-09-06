@@ -27,6 +27,7 @@ Passport partner cookies.
 | Тема | Где читать |
 | --- | --- |
 | Запуск, домены, Docker, XP | этот README |
+| **Развёртывание за Traefik** (TLS, IE6, ACME) | **[docs/traefik-runbook.md](docs/traefik-runbook.md)** |
 | **Вход на своём сайте** (OAuth + classic partner) | **[docs/partner-sso.ru.md](docs/partner-sso.ru.md)** |
 | Правила для агентов / контрибьюторов | [AGENTS.md](AGENTS.md) |
 
@@ -194,13 +195,23 @@ Backend  → GET /partner/verify  (Cookie: MSPAuth=...)
 
 ## Docker Compose и внешний Traefik
 
-Compose запускает только Go-сервис на внутреннем HTTP `:8080`. Traefik должен
-быть уже запущен и подключён к внешней Docker-сети `traefik`:
+Для полного lab-развёртывания с Traefik, Let's Encrypt и поддержкой IE6/TLS 1.0
+используйте [`docker-compose.production.yml`](docker-compose.production.yml).
+Пошаговая инструкция: **[docs/traefik-runbook.md](docs/traefik-runbook.md)**.
 
 ```powershell
 docker network create traefik
+Copy-Item .env.example .env
+docker compose -f docker-compose.production.yml build --pull
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml ps
+```
+
+[`docker-compose.yml`](docker-compose.yml) запускает только Go-сервис на
+внутреннем HTTP `:8080`, если Traefik уже работает во внешней сети `traefik`:
+
+```powershell
 docker compose up --build -d
-docker compose ps
 ```
 
 Для запуска опубликованного образа из GHCR без локальной сборки:
@@ -222,7 +233,7 @@ docker compose -f docker-compose.ext.yml up -d
 Сертификат должен покрывать все hostname, через которые ходит XP.
 
 ```powershell
-docker compose down
+docker compose -f docker-compose.production.yml down
 ```
 
 ## GitHub Container Registry

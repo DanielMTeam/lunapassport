@@ -25,6 +25,7 @@ real Microsoft services.
 | Topic | Where |
 | --- | --- |
 | Run the server, domains, Docker, XP | this README |
+| **Traefik production deployment** (TLS, IE6, ACME) | **[docs/traefik-runbook.md](docs/traefik-runbook.md)** |
 | **Sign users into your website** (OAuth + classic partner) | **[docs/partner-sso.md](docs/partner-sso.md)** |
 | Agent / contributor guidelines | [AGENTS.md](AGENTS.md) |
 
@@ -193,13 +194,25 @@ without an HTTP redirect.
 
 ## Docker Compose and external Traefik
 
-Compose starts only the Go service on internal HTTP port `8080`. Traefik must
-already be running and attached to the external Docker network `traefik`:
+For a full lab deployment with bundled Traefik, Let's Encrypt, and IE6 TLS
+support, use [`docker-compose.production.yml`](docker-compose.production.yml).
+See **[docs/traefik-runbook.md](docs/traefik-runbook.md)** for the step-by-step
+guide.
 
 ```powershell
 docker network create traefik
+Copy-Item .env.example .env
+docker compose -f docker-compose.production.yml build --pull
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml ps
+```
+
+[`docker-compose.yml`](docker-compose.yml) starts only the Go service on
+internal HTTP port `8080` when Traefik is already running on the external
+`traefik` network:
+
+```powershell
 docker compose up --build -d
-docker compose ps
 ```
 
 To run the published GHCR image instead of building locally:
@@ -224,7 +237,7 @@ hosts file and the certificate, not from this Compose stack.
 Stop the environment:
 
 ```powershell
-docker compose down
+docker compose -f docker-compose.production.yml down
 ```
 
 ## GitHub Container Registry

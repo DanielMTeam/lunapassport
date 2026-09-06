@@ -1,0 +1,18 @@
+tls:
+  options:
+    default:
+      minVersion: VersionTLS10
+      cipherSuites:
+        - TLS_RSA_WITH_AES_128_CBC_SHA
+        - TLS_RSA_WITH_AES_256_CBC_SHA
+        - TLS_RSA_WITH_3DES_EDE_CBC_SHA
+        - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+        - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+  stores:
+    default:
+      defaultGeneratedCert:
+        resolver: letsencrypt
+        domain:
+          main: passport-staging.pidoras.top
+          sans:
+            - memberservices-staging.pidoras.top

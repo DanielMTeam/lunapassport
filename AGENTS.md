@@ -19,6 +19,9 @@ The Go service is HTTP-only. Traefik or Nginx terminates TLS in front of it.
   exercises the server as a real process.
 - `docker-compose.yml` — LunaPassport service for an external Traefik instance;
   LunaPassport listens on port 8080 inside the external `traefik` network.
+- `docker-compose.production.yml` — bundled Traefik + LunaPassport lab stack
+  with Let's Encrypt and IE6 TLS support. See `docs/traefik-runbook.md`.
+- `dynamic/tls.yml` — Traefik dynamic TLS options for Windows XP / IE6.
 - `.env.example` — custom Passport and memberservices host configuration.
 - `tools/passport-test.reg` — ready-to-import WinXP WinHTTP Passport Test registry
   configuration for the staging login host.
@@ -41,15 +44,19 @@ test account `test@example.com` / `testpass`. The database path is controlled
 by `-db`; account profile fields can be changed through
 `/ppsecure/MSRV_EditProfile.asp` after authentication.
 
-For the full reverse-proxy environment, run an external Traefik instance on the
-`traefik` Docker network first:
+For the full reverse-proxy environment, use the production Compose stack:
 
 ```powershell
 docker network create traefik
 Copy-Item .env.example .env
-docker compose up --build -d
-docker compose ps
+docker compose -f docker-compose.production.yml build --pull
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml ps
 ```
+
+See `docs/traefik-runbook.md` for DNS, ACME, and IE6 TLS details. For an
+external Traefik instance instead, use `docker-compose.yml` after Traefik is
+already running on the `traefik` network:
 
 The Compose service mounts `_data` at `/data`, stores the database at
 `/data/accounts.db`, and passes custom-domain values from `.env` to the Go
@@ -123,6 +130,10 @@ Partner website integration (OAuth and classic Passport partner):
 
 - [docs/partner-sso.md](docs/partner-sso.md) (English)
 - [docs/partner-sso.ru.md](docs/partner-sso.ru.md) (Русский)
+
+Traefik production deployment:
+
+- [docs/traefik-runbook.md](docs/traefik-runbook.md)
 
 The protocol and Windows integration are based on these Microsoft references:
 

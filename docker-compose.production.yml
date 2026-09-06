@@ -1,0 +1,92 @@
+name: lunapassport
+
+services:
+  traefik:
+    image: traefik:v3.6.6
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      GODEBUG: tls10server=1,tls3des=1,tlsrsakex=1
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./dynamic:/etc/traefik/dynamic:ro
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-your@email.com}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    networks:
+      - traefik
+
+  lunapassport:
+    build:
+      context: .
+    restart: unless-stopped
+    command:
+      - -http
+      - :8080
+      - -db
+      - /data/accounts.db
+      - -passport-host
+      - ${PASSPORT_HOST:-passport-staging.pidoras.top}
+      - -memberservices-host
+      - ${MEMBERSERVICES_HOST:-memberservices-staging.pidoras.top}
+      - -passport-cookie-domain
+      - ${PASSPORT_COOKIE_DOMAIN:-.pidoras.top}
+      - -oauth-secret-pepper
+      - ${OAUTH_SECRET_PEPPER:-lunapassport-lab}
+    volumes:
+      - ./_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+
+      # HTTP entrypoint (ACME challenge + plain HTTP)
+      - traefik.http.routers.lunapassport-http.rule=Host(`${PASSPORT_HOST:-passport-staging.pidoras.top}`) || Host(`${MEMBERSERVICES_HOST:-memberservices-staging.pidoras.top}`) || Host(`register.passport.com`)
+      - traefik.http.routers.lunapassport-http.entrypoints=web
+      - traefik.http.routers.lunapassport-http.service=lunapassport
+
+      # HTTPS: passport host
+      - traefik.http.routers.passport.rule=Host(`${PASSPORT_HOST:-passport-staging.pidoras.top}`)
+      - traefik.http.routers.passport.entrypoints=websecure
+      - traefik.http.routers.passport.tls=true
+      - traefik.http.routers.passport.tls.certresolver=letsencrypt
+      - traefik.http.routers.passport.service=lunapassport
+
+      # HTTPS: memberservices host
+      - traefik.http.routers.memberservices.rule=Host(`${MEMBERSERVICES_HOST:-memberservices-staging.pidoras.top}`)
+      - traefik.http.routers.memberservices.entrypoints=websecure
+      - traefik.http.routers.memberservices.tls=true
+      - traefik.http.routers.memberservices.tls.certresolver=letsencrypt
+      - traefik.http.routers.memberservices.service=lunapassport
+
+      # HTTPS: legacy XP Wizard bootstrap alias (uses default TLS store, not ACME)
+      - traefik.http.routers.register-passport.rule=Host(`register.passport.com`)
+      - traefik.http.routers.register-passport.entrypoints=websecure
+      - traefik.http.routers.register-passport.tls=true
+      - traefik.http.routers.register-passport.service=lunapassport
+
+      - traefik.http.services.lunapassport.loadbalancer.server.port=8080
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
+    name: traefik

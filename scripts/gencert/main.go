@@ -38,9 +38,12 @@ func main() {
 	hosts := []string{
 		"passport-staging.alexsyw.me",
 		"memberservices-staging.alexsyw.me",
+		"passport-staging.pidoras.top",
+		"memberservices-staging.pidoras.top",
 		"login.passport.com",
 		"nexus.passport.com",
 		"register.passport.com",
+		"register.pidoras.top",
 		"memberservices.passport.com",
 		"www.passport.com",
 		"nexusrdr.passport.com",

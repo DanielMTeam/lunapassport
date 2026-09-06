@@ -321,9 +321,11 @@ func (s *accountStore) createOAuthClient(ownerSignIn, name, secret string, redir
 	return client, nil
 }
 
-func (s *accountStore) listOAuthClients() ([]oauthClient, error) {
+func (s *accountStore) listOAuthClientsForOwner(ownerSignIn string) ([]oauthClient, error) {
 	var clients []oauthClient
-	if err := s.db.Order("created_at desc").Find(&clients).Error; err != nil {
+	err := s.db.Where("owner_sign_in = ?", strings.TrimSpace(ownerSignIn)).
+		Order("created_at desc").Find(&clients).Error
+	if err != nil {
 		return nil, fmt.Errorf("list OAuth clients: %w", err)
 	}
 	return clients, nil
@@ -352,8 +354,9 @@ func (s *accountStore) authenticateOAuthClient(clientID, secret string) (oauthCl
 	return client, true, nil
 }
 
-func (s *accountStore) updateOAuthClientSecret(clientID, secret string) error {
-	result := s.db.Model(&oauthClient{}).Where("client_id = ?", clientID).
+func (s *accountStore) updateOAuthClientSecret(clientID, ownerSignIn, secret string) error {
+	result := s.db.Model(&oauthClient{}).
+		Where("client_id = ? AND owner_sign_in = ?", clientID, strings.TrimSpace(ownerSignIn)).
 		Update("client_secret_hash", s.hashClientSecret(secret))
 	if result.Error != nil {
 		return fmt.Errorf("rotate OAuth client secret: %w", result.Error)
@@ -364,8 +367,10 @@ func (s *accountStore) updateOAuthClientSecret(clientID, secret string) error {
 	return nil
 }
 
-func (s *accountStore) setOAuthClientEnabled(clientID string, enabled bool) error {
-	result := s.db.Model(&oauthClient{}).Where("client_id = ?", clientID).Update("enabled", enabled)
+func (s *accountStore) setOAuthClientEnabled(clientID, ownerSignIn string, enabled bool) error {
+	result := s.db.Model(&oauthClient{}).
+		Where("client_id = ? AND owner_sign_in = ?", clientID, strings.TrimSpace(ownerSignIn)).
+		Update("enabled", enabled)
 	if result.Error != nil {
 		return fmt.Errorf("update OAuth client: %w", result.Error)
 	}
@@ -375,15 +380,24 @@ func (s *accountStore) setOAuthClientEnabled(clientID string, enabled bool) erro
 	return nil
 }
 
-func (s *accountStore) deleteOAuthClient(clientID string) error {
+func (s *accountStore) deleteOAuthClient(clientID, ownerSignIn string) error {
+	ownerSignIn = strings.TrimSpace(ownerSignIn)
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		var client oauthClient
+		err := tx.Where("client_id = ? AND owner_sign_in = ?", clientID, ownerSignIn).First(&client).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("OAuth client not found")
+		}
+		if err != nil {
+			return fmt.Errorf("find OAuth client: %w", err)
+		}
 		if err := tx.Where("client_id = ?", clientID).Delete(&oauthAuthCode{}).Error; err != nil {
 			return fmt.Errorf("delete OAuth auth codes: %w", err)
 		}
 		if err := tx.Where("client_id = ?", clientID).Delete(&oauthAccessToken{}).Error; err != nil {
 			return fmt.Errorf("delete OAuth access tokens: %w", err)
 		}
-		result := tx.Where("client_id = ?", clientID).Delete(&oauthClient{})
+		result := tx.Where("client_id = ? AND owner_sign_in = ?", clientID, ownerSignIn).Delete(&oauthClient{})
 		if result.Error != nil {
 			return fmt.Errorf("delete OAuth client: %w", result.Error)
 		}

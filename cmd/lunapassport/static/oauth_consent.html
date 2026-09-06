@@ -30,6 +30,7 @@
             {{if .ErrorText}}<div class="status_message error_message">{{.ErrorText}}</div>{{end}}
 
             <form action="/oauth/authorize/consent" method="post">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                 <input type="hidden" name="client_id" value="{{.ClientID}}">
                 <input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
                 <input type="hidden" name="state" value="{{.State}}">

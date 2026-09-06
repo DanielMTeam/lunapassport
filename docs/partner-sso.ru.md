@@ -40,6 +40,29 @@ flowchart TD
    (позже можно rotate на той же странице).
 
 Секреты хранятся как hash с `OAUTH_SECRET_PEPPER` / `-oauth-secret-pepper`.
+Список / rotate / disable / delete доступны только владельцу приложения.
+
+## Совместимость (OAuth 2.0 vs OIDC)
+
+LunaPassport — IdP для **confidential-клиента** по OAuth 2.0 Authorization Code.
+Это **не** полноценный OpenID Connect провайдер.
+
+| Возможность | Поддержка |
+| --- | --- |
+| Authorization Code (`response_type=code`) | Да |
+| Client secret (form body или HTTP Basic) | Да |
+| Exact allowlist `redirect_uri` | Да |
+| Opaque Bearer access token | Да |
+| `/oauth/userinfo` (`sub`, `sign_in`, `passport_name`) | Да |
+| Отзыв токена | Да |
+| `state` (проверяет **ваш** сайт) | Pass-through |
+| OIDC discovery (`.well-known/openid-configuration`) | Нет |
+| `id_token` / JWKS | Нет |
+| PKCE | Нет (для Django + secret не нужен) |
+| Refresh tokens / scopes | Нет |
+
+**Django:** Authlib / `requests-oauthlib` или кастомный django-allauth
+`OAuth2Provider` с ручными URL. Auto-OIDC discovery (как у Google) не сработает.
 
 ## OAuth 2.0 (любой сайт)
 
@@ -149,6 +172,84 @@ Content-Type: application/x-www-form-urlencoded
 
 token=ACCESS_TOKEN
 ```
+
+### Django (Authlib) — рекомендуемый путь для современных сайтов
+
+Зарегистрируйте на `/partners` точный redirect URI:
+
+```text
+https://yourdjango.example/accounts/passport/callback/
+```
+
+Установите Authlib и подключите два view (эскиз):
+
+```python
+# pip install Authlib requests
+import secrets
+from authlib.integrations.requests_client import OAuth2Session
+from django.conf import settings
+from django.contrib.auth import get_user_model, login
+from django.http import HttpResponseBadRequest
+from django.shortcuts import redirect
+
+PASSPORT = settings.LUNAPASSPORT_BASE  # например https://passport-staging.alexsyw.me
+CLIENT_ID = settings.LUNAPASSPORT_CLIENT_ID
+CLIENT_SECRET = settings.LUNAPASSPORT_CLIENT_SECRET
+REDIRECT_URI = settings.LUNAPASSPORT_REDIRECT_URI
+AUTHORIZE_URL = f"{PASSPORT}/oauth/authorize"
+TOKEN_URL = f"{PASSPORT}/oauth/token"
+USERINFO_URL = f"{PASSPORT}/oauth/userinfo"
+
+
+def passport_login(request):
+    state = secrets.token_urlsafe(24)
+    request.session["oauth_state"] = state
+    client = OAuth2Session(CLIENT_ID, CLIENT_SECRET, redirect_uri=REDIRECT_URI, state=state)
+    uri, _ = client.create_authorization_url(AUTHORIZE_URL)
+    return redirect(uri)
+
+
+def passport_callback(request):
+    if request.GET.get("error"):
+        return HttpResponseBadRequest(request.GET.get("error_description", "oauth error"))
+    if request.GET.get("state") != request.session.get("oauth_state"):
+        return HttpResponseBadRequest("state mismatch")
+
+    client = OAuth2Session(CLIENT_ID, CLIENT_SECRET, redirect_uri=REDIRECT_URI)
+    token = client.fetch_token(
+        TOKEN_URL,
+        authorization_response=request.build_absolute_uri(),
+        client_secret=CLIENT_SECRET,
+    )
+    resp = client.get(USERINFO_URL)
+    resp.raise_for_status()
+    profile = resp.json()  # sub / sign_in / passport_name
+
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username=profile["sign_in"],
+        defaults={"email": profile["sign_in"]},
+    )
+    login(request, user)
+    return redirect("/")
+```
+
+`client_secret` только в Django settings / env — никогда в JS браузера.
+
+**django-allauth:** кастомный `OAuth2Provider` с `authorize_url`,
+`access_token_url`, `profile_url` на три эндпоинта выше; маппинг `sub` /
+`sign_in` на локального пользователя. OIDC auto-discovery для LunaPassport
+не включайте.
+
+### Заметки по безопасности (partner-сайты)
+
+- Всегда генерируйте и проверяйте `state` в сессии своего приложения.
+- `redirect_uri` должен совпадать **байт в байт** (схема, хост, путь, слэш).
+- LunaPassport — **лабораторный** IdP: изолированная сеть; токены не для
+  реальных сервисов Microsoft.
+- `client_secret` только на сервере.
+- Формы IdP (login/consent/`/partners`) защищены CSRF-cookie `LPCsrf`; на
+  стороне Django всё равно нужны свой CSRF и проверка `state`.
 
 ### Минимальный Go-пример callback
 

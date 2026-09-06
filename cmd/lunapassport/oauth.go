@@ -235,6 +235,8 @@ func (s *server) handleOAuthConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	decision := strings.ToLower(strings.TrimSpace(r.Form.Get("decision")))
+	// ie6 <button> may post inner text ("Allow") instead of value=
 	if decision != "allow" {
 		s.redirectOAuthError(w, r, redirectURI, state, "access_denied", "The user denied the request")
 		return

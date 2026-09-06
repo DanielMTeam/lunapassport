@@ -36,8 +36,9 @@
                 <input type="hidden" name="state" value="{{.State}}">
 
                 <div class="form_actions">
-                    <button class="box_action_button" type="submit" name="decision" value="allow">Allow</button>
-                    <button class="box_action_button" type="submit" name="decision" value="deny">Deny</button>
+                    <!-- input submit: IE6 ignores button value= and posts inner text -->
+                    <input class="box_action_button" type="submit" name="decision" value="Allow">
+                    <input class="box_action_button" type="submit" name="decision" value="Deny">
                 </div>
             </form>
         </div>
